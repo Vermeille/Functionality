@@ -87,14 +87,14 @@ Let's do a reminder about probabilities: when you stack uncertainties, they
 multiply. Let's consider every step of this project is 20% bloated or
 broken-by-design, and analyze the stack:
 
-element     accumulated probability of a correct execution
-nothing     1.00
-VM          0.80
-jitter      0.64
-asm         0.512
-language    0.4096
-kernel      0.32768
-user app    0.262144
+    element     accumulated probability of a correct execution
+    nothing     1.00
+    VM          0.80
+    JITter      0.64
+    ASM         0.512
+    language    0.4096
+    kernel      0.32768
+    user app    0.262144
 
 This is why the warning given in preample should be taken seriously. Or maybe
 you can just execute your main 5 times to make it actually run once,
