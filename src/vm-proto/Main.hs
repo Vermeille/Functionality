@@ -2,30 +2,52 @@
 
 module Main where
 
-import Data.Sequence as S
+import qualified Data.Sequence as S
+import qualified Data.Vector as V
 import Control.Monad.State
 import Control.Lens
 import Control.Applicative
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 
 data Value  = I8 Int
             | I16 Int
             | I32 Int
             | F Float
-            | Ptr (Int, (FunEnv -> [Value]), Int)
+            | Ptr (Int, VarType, Int)
+            deriving (Show)
+
+data VarType = Local | Arg | Temp
+             deriving (Show)
 
 data FunEnv = FunEnv { _loc :: [Value], _args :: [Value], _temps :: [Value] }
-data Memory = Memory { _stack :: S.Seq FunEnv }
+            deriving (Show)
+data Memory = Memory { _stack :: S.Seq FunEnv, _code :: V.Vector Opcode, _pc :: Int }
+            deriving (Show)
 
 data Arith = Add | Sub | Mul | Div
+            deriving (Show)
 data LdOp = Ldloc Int | Ldloca Int | Ldarg Int | Lda Int
+            deriving (Show)
+
+data PushOp = Pushimm Value
+            deriving (Show)
+
+data Opcode = Ar Arith | Ld LdOp | Push PushOp
+            deriving (Show)
 
 makeLenses ''FunEnv
 makeLenses ''Memory
 
+newStackFrame args = FunEnv { _loc = [], _args = args, _temps = [] }
+newVM code = Memory { _stack = S.fromList [newStackFrame []], _code = V.fromList code, _pc = 0 }
+
 topFun = stack . _last
 topTemp = temps . _head
 tos = topFun . topTemp
+
+takeVar Local = _loc
+takeVar Arg = _args
+takeVar Temp = _temps
 
 push :: Value -> State Memory ()
 push v = state $ \mem -> ((), mem & stack . _last . temps  %~ (v:))
@@ -33,21 +55,21 @@ push v = state $ \mem -> ((), mem & stack . _last . temps  %~ (v:))
 pop :: State Memory Value
 pop = state $ \mem -> (topVal mem, mem & stack . _last . temps %~ tail)
     where
-        topVal mem = case mem ^? topFun . topTemp of
-                        Just val -> val
-                        Nothing -> error "poping an empty stack"
+        topVal mem = fromMaybe (error "poping an empty stack") $ mem ^? topFun . topTemp
 
 evalLd :: LdOp -> State Memory ()
 evalLd (Ldloc n) = preuse (stack . _last . loc . ix n) >>= push . fromJust
 evalLd (Ldloca n) = do
-            stackLevel <- uses (stack) S.length
-            push (Ptr (stackLevel, _loc, n))
+            stackLevel <- uses stack S.length
+            push (Ptr (stackLevel, Local, n))
 evalLd (Ldarg n) = preuse (stack . _last . args . ix n) >>= push . fromJust
 evalLd (Lda n) =
         do
             Ptr (s', ty, n) <- pop
-            val <- preuse (stack . ix s' . to ty . ix n)
+            val <- preuse (stack . ix s' . to (takeVar ty) . ix n)
             push (fromJust val)
+
+evalPush (Pushimm v) = push v
 
 evalOp Add = add' <$> pop <*> pop >>= push
     where
@@ -129,4 +151,22 @@ evalOp Div = div' <$> pop <*> pop >>= push
         div' (F a) (F b) = F (a / b)
         div' _ _ = error "invalid types for Div"
 
-main = return ()
+eval (Ar a) = do evalOp a
+eval (Ld ld) = do evalLd ld
+eval (Push p) = do evalPush p
+
+runVM = do
+        idx <- use pc
+        len <- uses code V.length
+        if idx == len then
+            return ()
+        else do
+            opcode <- preuse (code . ix idx)
+            eval $ fromMaybe (error "invalid pc") opcode
+            pc += 1
+            runVM
+
+main = do
+        let vm = newVM [Push (Pushimm (I8 1)), Push (Pushimm (I8 2)), Ar Add]
+        let res = runState runVM vm
+        print $ res ^. _2 . stack

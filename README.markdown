@@ -3,7 +3,7 @@ Functionality
 
 Since I am a really bad developper when it comes to low level stuff, please
 consider this work as heavily unstable, and as a playground for me. Trusting
-this project on more or less like trusting a total stranger asking to borrow
+this project is more or less like trusting a total stranger asking to borrow
 your credit card for few days, even if he is claiming not to use it for his own
 benefit. You got me: don't fucking use that code, or the universe may collapse
 because it's too unstable.
@@ -96,7 +96,7 @@ broken-by-design, and analyze the stack:
     kernel      0.32768
     user app    0.262144
 
-This is why the warning given in preample should be taken seriously. Or maybe
+This is why the warning given in preamble should be taken seriously. Or maybe
 you can just execute your main 5 times to make it actually run once,
 statistically.
 
