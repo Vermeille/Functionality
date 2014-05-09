@@ -8,7 +8,7 @@ import Arithmetics
 import Control.Lens
 import Control.Monad.State
 import qualified Data.Vector as V
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 
 eval (Ar a) = evalOp a
 eval (Ld ld) = evalLd ld

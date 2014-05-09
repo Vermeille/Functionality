@@ -168,3 +168,26 @@ evalOp And = and' <$> pop <*> pop >>= push
         and' (I32 a) (I32 b) = I32 (a .&. b)
         and' _ _ = error "invalid types fand and"
 
+evalOp Cmp = do
+        a <- pop
+        b <- pop
+        push (b `sub'` a)
+    where
+        sub' (I8 a) (I8 b) = I32 (fromIntegral a - fromIntegral b)
+        sub' (I8 a) (I16 b) = I32 (fromIntegral a - fromIntegral b)
+        sub' (I8 a) (I32 b) = I32 (fromIntegral a - fromIntegral b)
+        sub' (I8 a) (F b) = F (fromIntegral a - b)
+        sub' (I16 a) (I8 b) = I32 (fromIntegral a - fromIntegral b)
+        sub' (I16 a) (I16 b) = I32 (fromIntegral a - fromIntegral b)
+        sub' (I16 a) (I32 b) = I32 (fromIntegral a - b)
+        sub' (I16 a) (F b) = F (fromIntegral a - b)
+        sub' (I32 a) (I8 b) = I32 (a - fromIntegral b)
+        sub' (I32 a) (I16 b) = I32 (a - fromIntegral b)
+        sub' (I32 a) (I32 b) = I32 (a - fromIntegral b)
+        sub' (I32 a) (F b) = F (fromIntegral a - b)
+        sub' (F a) (I8 b) = F (a - fromIntegral b)
+        sub' (F a) (I16 b) = F (a - fromIntegral b)
+        sub' (F a) (I32 b) = F (a - fromIntegral b)
+        sub' (F a) (F b) = F (a - b)
+        sub' _ _ = error "invalid types for sub"
+

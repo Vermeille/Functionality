@@ -18,6 +18,7 @@ data Arith = Add
            | Shr
            | Or
            | And
+           | Cmp
            deriving (Show)
 
 data LdOp = Ldloc Int
@@ -32,6 +33,11 @@ data PushOp = Pushimm Value
 
 data BranchOp   = Beq Int
                 | Bneq Int
+                | Blt Int
+                | Bltq Int
+                | Bgt Int
+                | Bgtq Int
+                | Jmp Int
                 deriving (Show)
 
 data Value  = I8 !Int8

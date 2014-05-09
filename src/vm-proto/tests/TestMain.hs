@@ -36,4 +36,28 @@ prop_shr = testOp (\x y -> x `shiftR` fromIntegral y) Shr
 prop_or = testOp (.|.) Or
 prop_and = testOp (.&.) And
 
+testBr op opcode a b =
+        let res = runState runVM vm in
+        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+            ++ " in: " ++ show a ++ " " ++ show b)) $
+        case res ^? _2 . tos of
+            Just val -> valToInt val == (if a `op` b then 1 else 0)
+            Nothing ->  False
+        where
+            vm = newVM code
+            code = [Push (Pushimm (I8 a)),
+                   Push (Pushimm (I8 b)),
+                   Ar Cmp,
+                   Branch (opcode (length code - 1)),
+                   Push (Pushimm (I8 0)),
+                   Branch (Jmp (length code)),
+                   Push (Pushimm (I8 1))]
+
+prop_beq  a b = a - b < 5 ==> testBr (==) Beq a b
+prop_bneq a b = a - b < 5 ==> testBr (/=) Bneq a b
+prop_blt  a b = a - b < 5 ==> testBr (<) Blt a b
+prop_bgt  a b = a - b < 5 ==> testBr (>) Bgt a b
+prop_bltq a b = a - b < 5 ==> testBr (<=) Bltq a b
+prop_bgtq a b = a - b < 5 ==> testBr (>=) Bgtq a b
+
 main = $quickCheckAll

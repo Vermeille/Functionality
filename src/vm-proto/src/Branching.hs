@@ -22,4 +22,9 @@ branchIf cmp dst = do
 evalBranch :: BranchOp -> State Memory ()
 evalBranch (Beq dst) = branchIf (==) dst
 evalBranch (Bneq dst) = branchIf (/=) dst
+evalBranch (Blt dst) = branchIf (<) dst
+evalBranch (Bltq dst) = branchIf (<=) dst
+evalBranch (Bgt dst) = branchIf (>) dst
+evalBranch (Bgtq dst) = branchIf (>=) dst
+evalBranch (Jmp dst) = do pc .= dst - 1
 
