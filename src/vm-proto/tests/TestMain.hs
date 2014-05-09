@@ -8,9 +8,9 @@ import Data.Int
 import Data.Bits
 import Branching
 import Control.Lens
-import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.All
 import Control.Monad.State
+import Test.QuickCheck hiding ((.&.))
 
 testOp op opcode a b =
         let res = runState runVM vm in
@@ -21,10 +21,12 @@ testOp op opcode a b =
             Just val -> valToInt val == fromIntegral (a `op` b)
             Nothing ->  False
         where
-            vm = newVM code
-            code = [Push (Pushimm (I8 a)),
-                   Push (Pushimm (I8 b)),
-                   Ar opcode]
+            vm = newVM [code]
+            code = newFun "Main" []
+                    [ Push (Pushimm (I8 a))
+                    , Push (Pushimm (I8 b))
+                    , Ar opcode
+                    , Branch Ret]
 
 prop_add = testOp (+) Add
 prop_sub = testOp (-) Sub
@@ -44,14 +46,16 @@ testBr op opcode a b =
             Just val -> valToInt val == (if a `op` b then 1 else 0)
             Nothing ->  False
         where
-            vm = newVM code
-            code = [Push (Pushimm (I8 a)),
-                   Push (Pushimm (I8 b)),
-                   Ar Cmp,
-                   Branch (opcode (length code - 1)),
-                   Push (Pushimm (I8 0)),
-                   Branch (Jmp (length code)),
-                   Push (Pushimm (I8 1))]
+            vm = newVM [code]
+            code = newFun "Main" []
+                    [ Push (Pushimm (I8 a)) -- 0
+                    , Push (Pushimm (I8 b)) -- 1
+                    , Ar Cmp                -- 2
+                    , Branch (opcode 6)     -- 3
+                    , Push (Pushimm (I8 0)) -- 4
+                    , Branch Ret     -- 5
+                    , Push (Pushimm (I8 1)) -- 6
+                    , Branch (Ret)]    -- 7
 
 prop_beq  a b = a - b < 5 ==> testBr (==) Beq a b
 prop_bneq a b = a - b < 5 ==> testBr (/=) Bneq a b

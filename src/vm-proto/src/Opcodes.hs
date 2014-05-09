@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 module Opcodes where
 
 import Data.Int
@@ -38,6 +37,7 @@ data BranchOp   = Beq Int
                 | Bgt Int
                 | Bgtq Int
                 | Jmp Int
+                | Ret
                 deriving (Show)
 
 data Value  = I8 !Int8
