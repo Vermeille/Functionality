@@ -3,7 +3,10 @@ module Opcodes where
 
 import Data.Int
 
-data Opcode = Ar Arith | Ld LdOp | Push PushOp
+data Opcode = Ar Arith
+            | Ld LdOp
+            | Push PushOp
+            | Branch BranchOp
             deriving (Show)
 
 data Arith = Add
@@ -26,6 +29,10 @@ data LdOp = Ldloc Int
 
 data PushOp = Pushimm Value
             deriving (Show)
+
+data BranchOp   = Beq Int
+                | Bneq Int
+                deriving (Show)
 
 data Value  = I8 !Int8
             | I16 !Int16
