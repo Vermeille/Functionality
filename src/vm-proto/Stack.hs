@@ -24,9 +24,10 @@ evalLd (Ldloca n) = do
             stackLevel <- uses stack S.length
             push (Ptr (stackLevel, Local, n))
 evalLd (Ldarg n) = preuse (topFun . args . ix n) >>= push . fromJust
-evalLd (Lda n) =
-        do
+evalLd (Lda n) = do
             Ptr (s', ty, n) <- pop
             val <- preuse (stack . ix s' . to (takeVar ty) . ix n)
             push $ fromJust val
+
+evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
 
