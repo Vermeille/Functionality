@@ -13,11 +13,13 @@ valToInt (I16 i) = fromIntegral i
 valToInt (I32 i) = fromIntegral i
 valToInt _ = error "not an int"
 
-evalBranch :: BranchOp -> State Memory ()
+branchIf :: (Int -> Int -> Bool) -> Int -> State Memory ()
 branchIf cmp dst = do
         val <- pop
         when (valToInt val `cmp` 0) $
             pc .= dst - 1
 
+evalBranch :: BranchOp -> State Memory ()
 evalBranch (Beq dst) = branchIf (==) dst
 evalBranch (Bneq dst) = branchIf (/=) dst
+

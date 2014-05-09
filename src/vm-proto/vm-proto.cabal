@@ -17,5 +17,13 @@ cabal-version:       >=1.8
 
 executable vm-proto
   main-is:             Main.hs
+  ghc-options:         -Wall
   hs-source-dirs:      src
   build-depends:       base ==4.6.*, lens ==4.1.*, containers ==0.5.*, vector ==0.10.*, mtl -any
+
+test-suite all
+  type: exitcode-stdio-1.0
+  hs-source-dirs:     src, tests
+  main-is:            TestMain.hs
+  build-depends:       base ==4.6.*, lens ==4.1.*, containers ==0.5.*, vector
+                       ==0.10.*, mtl -any, QuickCheck -any

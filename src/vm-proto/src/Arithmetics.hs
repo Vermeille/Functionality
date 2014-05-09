@@ -28,7 +28,10 @@ evalOp Add = add' <$> pop <*> pop >>= push
         add' (F a) (F b) = F (a + b)
         add' _ _ = error "invalid types for Add"
 
-evalOp Sub = sub' <$> pop <*> pop >>= push
+evalOp Sub = do
+        a <- pop
+        b <- pop
+        push (b `sub'` a)
     where
         sub' (I8 a) (I8 b) = I8 (a - b)
         sub' (I8 a) (I16 b) = I16 (fromIntegral a - b)
@@ -68,7 +71,10 @@ evalOp Mul = mul' <$> pop <*> pop >>= push
         mul' (F a) (F b) = F (a * b)
         mul' _ _ = error "invalid types for mul"
 
-evalOp Div = div' <$> pop <*> pop >>= push
+evalOp Div = do
+        a <- pop
+        b <- pop
+        push (b `div'` a)
     where
         div' (I8 a) (I8 b) = I8 (a `div` b)
         div' (I8 a) (I16 b) = I16 (fromIntegral a `div` b)
@@ -88,7 +94,10 @@ evalOp Div = div' <$> pop <*> pop >>= push
         div' (F a) (F b) = F (a / b)
         div' _ _ = error "invalid types for Div"
 
-evalOp Mod = mod' <$> pop <*> pop >>= push
+evalOp Mod = do
+        a <- pop
+        b <- pop
+        push (b `mod'` a)
     where
         mod' (I8 a) (I8 b) = I8 (a `mod` b)
         mod' (I8 a) (I16 b) = I16 (fromIntegral a `mod` b)
@@ -101,7 +110,10 @@ evalOp Mod = mod' <$> pop <*> pop >>= push
         mod' (I32 a) (I32 b) = I32 (a `mod` b)
         mod' _ _ = error "invalid types for mod"
 
-evalOp Shl = shl' <$> pop <*> pop >>= push
+evalOp Shl = do
+        a <- pop
+        b <- pop
+        push (b `shl'` a)
     where
         shl' (I8 a) (I8 b) = I8 (a `shiftL` fromIntegral b)
         shl' (I8 a) (I16 b) = I8 (a `shiftL` fromIntegral b)
@@ -114,7 +126,10 @@ evalOp Shl = shl' <$> pop <*> pop >>= push
         shl' (I32 a) (I32 b) = I32 (a `shiftL` fromIntegral b)
         shl' _ _ = error "invalid types for shl"
 
-evalOp Shr = shr' <$> pop <*> pop >>= push
+evalOp Shr = do
+        a <- pop
+        b <- pop
+        push (b `shr'` a)
     where
         shr' (I8 a) (I8 b) = I8 (a `shiftR` fromIntegral b)
         shr' (I8 a) (I16 b) = I8 (a `shiftR` fromIntegral b)
