@@ -3,10 +3,11 @@ module Branching where
 import VM
 import Stack
 import Opcodes
-import Control.Lens hiding ((|>))
-import Data.Sequence
 import Control.Monad
+import System.IO.Unsafe
+import Control.Lens hiding ((|>))
 import Control.Monad.State
+import qualified Data.Sequence as S
 
 valToInt :: Value -> Int
 valToInt (I8 i) = fromIntegral i
@@ -23,9 +24,16 @@ branchIf cmp dst = do
 popFun :: State Memory ()
 popFun = do
         st <- use stack
-        case viewr st of
-            EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
-            previous :> _ -> stack .= previous
+        case S.viewr st of
+            S.EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
+            previous S.:> _ -> stack .= previous
+
+typeCheck :: Value -> Value -> Value
+typeCheck a@(I8 _) (I8 _) = a
+typeCheck a@(I16 _) (I16 _) = a
+typeCheck a@(I32 _) (I32 _) = a
+typeCheck a@(F _) (F _) = a
+typeCheck _ _ = error "typechecking failed"
 
 evalBranch :: BranchOp -> State Memory ()
 evalBranch (Beq dst) = branchIf (==) dst
@@ -41,4 +49,15 @@ evalBranch Ret = do
         popFun
         push ret
         pc .= (funPc, instrPc - 1)
-
+evalBranch (Call funId) = do
+        Just tyArgs <- preuse (nthFun funId . params)
+        Just args' <- preuses (topFun . temps) (take $ length tyArgs)
+        topFun . temps %= drop (length tyArgs)
+        _ <- return $ zipWith typeCheck args' tyArgs
+        Just funDef <- preuse (nthFun funId)
+        Just (curFun, curInstr) <- preuse pc
+        stack %= (S.|> newStackFrame funDef args' (curFun, curInstr + 1))
+        pc .= (funId, -1)
+evalBranch (BreakPoint) = do
+        machine <- get
+        return (unsafePerformIO $ print machine)

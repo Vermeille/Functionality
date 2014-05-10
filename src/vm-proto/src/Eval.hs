@@ -8,7 +8,6 @@ import Arithmetics
 import Control.Lens
 import Control.Monad.State
 import Data.Maybe (fromMaybe)
-import Debug.Trace
 
 eval :: Opcode -> State Memory ()
 eval (Ar a) = evalOp a

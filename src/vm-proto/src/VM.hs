@@ -5,7 +5,9 @@ module VM where
 
 import Opcodes
 import Control.Lens
+import Data.List (intercalate)
 import qualified Data.Vector as V
+import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 
 data FunEnv = FunEnv { _loc :: [Value]
@@ -17,32 +19,40 @@ data FunEnv = FunEnv { _loc :: [Value]
 data Memory = Memory { _stack :: S.Seq FunEnv
                      , _pc :: (Int, Int)
                      , _funs :: V.Vector Function}
-            deriving (Show)
 
 data Function = Function { _name :: String
                          , _params :: [Value]
+                         , _retVal :: Value
+                         , _locVar :: [Value]
                          , _impl :: V.Vector Opcode }
-            deriving (Show)
 
 makeLenses ''FunEnv
 makeLenses ''Memory
 makeLenses ''Function
 
-newStackFrame :: [Value] -> FunEnv
-newStackFrame param = FunEnv { _loc = []
+newStackFrame :: Function -> [Value] -> (Int, Int) -> FunEnv
+newStackFrame fun' args' retPtr = FunEnv { _loc = _locVar fun'
+                                  , _args = args'
+                                  , _temps = []
+                                  , _retAddr = retPtr }
+
+emptyStackFrame :: [Value] -> FunEnv
+emptyStackFrame param = FunEnv { _loc = []
                              , _args = param
                              , _temps = []
                              , _retAddr = (-1, -1) }
 
 newVM :: [Function] -> Memory
-newVM funs' = Memory { _stack = S.fromList (replicate 2 $ newStackFrame [])
+newVM funs' = Memory { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
                      , _pc = (0, 0)
                      , _funs = V.fromList funs' }
 
-newFun :: String -> [Value] -> [Opcode] -> Function
-newFun name' args' impl' = Function { _name = name'
-                                   , _params = args'
-                                   , _impl = V.fromList impl' }
+newFun :: String -> [Value] -> Value -> [Value] -> [Opcode] -> Function
+newFun name' args' retVal' locs' impl' = Function { _name = name'
+                                                 , _params = args'
+                                                 , _retVal = retVal'
+                                                 , _locVar = locs'
+                                                 , _impl = V.fromList impl' }
 
 topFun :: Traversal' Memory FunEnv
 topFun = stack . _last
@@ -53,16 +63,33 @@ topTemp = temps . _head
 tos :: Traversal' Memory Value
 tos = topFun . topTemp
 
+nthFun :: Int -> Traversal' Memory Function
+nthFun n = funs . ix n
+
 code :: (Int, Int) -> Traversal' Memory Opcode
-code (fun, instr) = funs . ix fun . impl . ix instr
+code (fun, instr) = nthFun fun . impl . ix instr
 
 _fun :: Lens' (Int, Int) Int
 _fun = _1
 _instr :: Lens' (Int, Int) Int
-_instr x = _2 x
+_instr = _2
 
 takeVar :: VarType -> (FunEnv -> [Value])
 takeVar Local = _loc
 takeVar Arg = _args
 takeVar Temp = _temps
 
+instance Show Memory where
+        show m = "========== Functionality ========\n" ++
+            "Stack:\n  " ++
+            (intercalate "\n  " . map show . F.toList $ _stack m) ++
+            "\n\nCurrently in fun " ++ (show . fst $ _pc m) ++ " at instr " ++
+            (show . snd $ _pc m) ++ "\n\nCode:\n" ++
+            (intercalate "\n" . map show . V.toList $ _funs m) ++ "\n"
+
+instance Show Function where
+        show f =
+            _name f ++ " :: " ++
+            (intercalate " -> " . map show $ _params f) ++ " -> " ++ show (_retVal f) ++
+            " {\nlocals: " ++ show (_locVar f) ++ "\ncode:\n  " ++
+            (intercalate "\n  " . map show . V.toList $ _impl f) ++ "\n}\n"

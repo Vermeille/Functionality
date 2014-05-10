@@ -22,7 +22,7 @@ testOp op opcode a b =
             Nothing ->  False
         where
             vm = newVM [code]
-            code = newFun "Main" []
+            code = newFun "Main" [] (I8 0) []
                     [ Push (Pushimm (I8 a))
                     , Push (Pushimm (I8 b))
                     , Ar opcode
@@ -47,15 +47,15 @@ testBr op opcode a b =
             Nothing ->  False
         where
             vm = newVM [code]
-            code = newFun "Main" []
+            code = newFun "Main" [] (I8 0) []
                     [ Push (Pushimm (I8 a)) -- 0
                     , Push (Pushimm (I8 b)) -- 1
                     , Ar Cmp                -- 2
                     , Branch (opcode 6)     -- 3
                     , Push (Pushimm (I8 0)) -- 4
-                    , Branch Ret     -- 5
+                    , Branch Ret            -- 5
                     , Push (Pushimm (I8 1)) -- 6
-                    , Branch (Ret)]    -- 7
+                    , Branch (Ret)]         -- 7
 
 prop_beq  a b = a - b < 5 ==> testBr (==) Beq a b
 prop_bneq a b = a - b < 5 ==> testBr (/=) Bneq a b
@@ -63,5 +63,27 @@ prop_blt  a b = a - b < 5 ==> testBr (<) Blt a b
 prop_bgt  a b = a - b < 5 ==> testBr (>) Bgt a b
 prop_bltq a b = a - b < 5 ==> testBr (<=) Bltq a b
 prop_bgtq a b = a - b < 5 ==> testBr (>=) Bgtq a b
+
+prop_call a b =
+        let res = runState runVM vm in
+        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+            ++ " in: " ++ show a ++ " " ++ show b
+            ++ " expected: " ++ show (a + b))) $
+        case res ^? _2 . tos of
+            Just val -> valToInt val == fromIntegral (a + b)
+            Nothing ->  False
+        where
+            vm = newVM [vmMain, vmAdd]
+            vmMain = newFun "Main" [] (I8 0) []
+                    [ Push (Pushimm (I8 a))
+                    , Push (Pushimm (I8 b))
+                    , Branch (Call 1)
+                    , Branch Ret]
+            vmAdd = newFun "Add" [I8 0, I8 0] (I8 0) []
+                    [ Ld (Ldarg 0)
+                    , Ld (Ldarg 1)
+                    , Ar Add
+                    , Branch Ret ]
+
 
 main = $quickCheckAll

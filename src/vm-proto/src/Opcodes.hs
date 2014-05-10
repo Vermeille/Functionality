@@ -6,7 +6,6 @@ data Opcode = Ar Arith
             | Ld LdOp
             | Push PushOp
             | Branch BranchOp
-            deriving (Show)
 
 data Arith = Add
            | Sub
@@ -38,6 +37,8 @@ data BranchOp   = Beq Int
                 | Bgtq Int
                 | Jmp Int
                 | Ret
+                | Call Int
+                | BreakPoint
                 deriving (Show)
 
 data Value  = I8 !Int8
@@ -50,3 +51,8 @@ data Value  = I8 !Int8
 data VarType = Local | Arg | Temp
              deriving (Show)
 
+instance Show Opcode where
+        show (Ar a) = show a
+        show (Ld ld) = show ld
+        show (Push p) = show p
+        show (Branch b) = show b
