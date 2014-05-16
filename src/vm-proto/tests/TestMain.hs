@@ -102,4 +102,33 @@ prop_simple_struct a b =
                     , construct_ 0 0 ]
             vmSStruct = TyUnion "SStruct" [Ctor "SCtor" [TyI8, TyI16]]
 
+prop_match aGen bGen = do
+        a <- choose (0, 2)
+        b <- choose (0, 2)
+        return $! verify a b
+        where
+            verify a b = let res = runState runVM vm in
+                whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+                    ++ " in: " ++ show a ++ " " ++ show b
+                    ++ " expected: " ++ show expected )) $
+                case res ^? _2 . tos of
+                    Just (I8 val) -> val == expected
+                    Nothing ->  False
+                where
+                    vm = newVM [vmMain] [vmSStruct]
+
+                    vmMain = newFun "Main" [] TyI8 []
+                            [ push_ (I8 42)     -- 0
+                            , construct_ 0 a    -- 1
+                            , match_ b 5        -- 2
+                            , push_ (I8 0)      -- 3
+                            , jmp_ 6            -- 4
+                            , push_ (I8 1)      -- 5
+                            , ret_              -- 6
+                            ]
+                    vmSStruct = TyUnion "SStruct" [ Ctor "SCtor1" [TyI8]
+                                                  , Ctor "SCtor2" [TyI8]
+                                                  , Ctor "SCtor3" [TyI8] ]
+                    expected = if a == b then 1 else 0
+
 main = $quickCheckAll

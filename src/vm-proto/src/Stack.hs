@@ -39,7 +39,7 @@ evalLd (Construct uid cid) = do
             args' <- uses (topFun . temps) (take nbMembs)
             topFun . temps %= drop nbMembs
             _ <- return $ zipWith typeCheck args' uMembs
-            evalPush $ Pushimm (Union uid args')
+            evalPush $ Pushimm (Union cid args')
             where
                 getUnionDef :: State Memory TyUnion
                 getUnionDef = preuse (types . ix uid) >>=

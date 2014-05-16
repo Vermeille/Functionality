@@ -61,3 +61,12 @@ evalBranch (Call funId) = do
 evalBranch (BreakPoint) = do
         vm <- get
         return $! (unsafePerformIO $ putStrLn (show vm))
+evalBranch (Match cid dst) = do
+        Just val <- preuse tos
+        case val of
+            Union cid' _ ->
+                if cid == cid' then
+                    evalBranch (Jmp dst)
+                else
+                    return $! ()
+            _ -> error "not an Union on top of stack"

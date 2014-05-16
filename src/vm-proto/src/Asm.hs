@@ -80,5 +80,8 @@ call_ = Branch . Call
 brk_ :: Opcode
 brk_ = Branch BreakPoint
 
+match_ :: Int -> Int -> Opcode
+match_ cid dst= Branch (Match cid dst)
+
 push_ :: Value -> Opcode
 push_ = Push . Pushimm

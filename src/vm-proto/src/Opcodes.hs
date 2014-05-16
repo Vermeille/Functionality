@@ -55,6 +55,8 @@ data BranchOp   = Beq Int       -- ^ Branch Equal
                                 --   previous stack frame
                 | Call Int      -- ^ Call a function at address
                 | BreakPoint    -- ^ Debugger entry, for now, print the VM
+                | Match Int Int -- ^ if ToS was built with ctor arg1, then jump
+                                --   to arg2
                 deriving (Show)
 
 -- | The values the VM is able to deal with.
@@ -67,7 +69,7 @@ data Value  = I8 !Int8
             deriving (Show)
 
 -- | Where is the var? Used by Ptr.
-data VarPlace = Local | Arg | Temp
+data VarPlace = Local | Arg | Temp | Heap
              deriving (Show)
 
 -- Almost the same as Value. I don't like it
