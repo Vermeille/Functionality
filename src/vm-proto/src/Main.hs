@@ -1,6 +1,7 @@
 module Main where
 
 import VM
+import Asm
 import Eval
 import Opcodes
 import Control.Lens
@@ -8,17 +9,17 @@ import Control.Monad.State
 
 funMain :: Function
 funMain = newFun "Main" [] TyI16 [] $
-                [ Push (Pushimm (I16 1))
-                , Push (Pushimm (I16 666))
-                , Branch (Call 1)
-                , Branch Ret ]
+                [ push_ (I16 1)
+                , push_ (I16 666)
+                , call_ 1
+                , ret_ ]
 
 funAdd :: Function
 funAdd = newFun "Add" [TyI16, TyI16] TyI16 []
-                [ Ld (Ldarg 0)
-                , Ld (Ldarg 1)
-                , Ar Add
-                , Branch Ret]
+                [ ldarg_ 0
+                , ldarg_ 1
+                , add_
+                , ret_ ]
 
 
 main :: IO ()
