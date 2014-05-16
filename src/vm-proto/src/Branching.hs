@@ -9,18 +9,24 @@ import Control.Lens hiding ((|>))
 import Control.Monad.State
 import qualified Data.Sequence as S
 
+-- | extract an int out of an i{8,16,32} value. Useful when casting or wanting
+-- to disregard int type
 valToInt :: Value -> Int
 valToInt (I8 i) = fromIntegral i
 valToInt (I16 i) = fromIntegral i
 valToInt (I32 i) = fromIntegral i
 valToInt _ = error "not an int"
 
-branchIf :: (Int -> Int -> Bool) -> Int -> State Memory ()
+-- | Utility function to make evalBranch cleaner
+branchIf :: (Int -> Int -> Bool) -- ^ A comparison function
+            -> Int               -- ^ Destination address
+            -> State Memory ()   -- ^ The VM
 branchIf cmp dst = do
         val <- pop
         when (valToInt val `cmp` 0) $
             pc._instr .= dst - 1
 
+-- | Pop a value
 popFun :: State Memory ()
 popFun = do
         st <- use stack
@@ -28,6 +34,7 @@ popFun = do
             S.EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
             previous S.:> _ -> stack .= previous
 
+-- | Evaluate a branching instruction
 evalBranch :: BranchOp -> State Memory ()
 evalBranch (Beq dst) = branchIf (==) dst
 evalBranch (Bneq dst) = branchIf (/=) dst

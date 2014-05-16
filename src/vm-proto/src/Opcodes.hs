@@ -1,3 +1,10 @@
+{-|
+module: Opcodes
+
+This module defines all instructions (the name "Opcode" might be a little
+misleading), as well as types and values. You may want to read about the VM
+design explained in the module VM first.
+-}
 {-# LANGUAGE TemplateHaskell #-}
 module Opcodes where
 
@@ -5,11 +12,13 @@ import Data.Int
 import Control.Lens
 import Data.List (intercalate)
 
+-- | For now, we have four categories of instructions
 data Opcode = Ar Arith
             | Ld LdOp
             | Push PushOp
             | Branch BranchOp
 
+-- | Basic arithmetical operations
 data Arith = Add
            | Sub
            | Mul
@@ -22,45 +31,52 @@ data Arith = Add
            | Cmp
            deriving (Show)
 
-data LdOp = Ldloc Int
-          | Ldloca Int
-          | Ldarg Int
-          | Lda Int
-          | Dup
-          | Construct Int Int
+-- | loading instructions
+data LdOp = Ldloc Int           -- ^ Push the nth local variable on the stack
+          | Ldloca Int          -- ^ Push the nth local var's address
+          | Ldarg Int           -- ^ Push the nth argument
+          | Lda Int             -- ^ FIXME: Still obscure.
+          | Dup                 -- ^ Duplicate the ToS
+          | Construct Int Int   -- ^ Construct the nth Union with the mth ctor
+                                --   taking members on the stack
           deriving (Show)
 
-data PushOp = Pushimm Value
+data PushOp = Pushimm Value     -- ^ Push an immediate value
             deriving (Show)
 
-data BranchOp   = Beq Int
-                | Bneq Int
-                | Blt Int
-                | Bltq Int
-                | Bgt Int
-                | Bgtq Int
-                | Jmp Int
-                | Ret
-                | Call Int
-                | BreakPoint
+data BranchOp   = Beq Int       -- ^ Branch Equal
+                | Bneq Int      -- ^ Branch Non-equal
+                | Blt Int       -- ^ Branch less than
+                | Bltq Int      -- ^ Branch less than or equal
+                | Bgt Int       -- ^ Branch greater than
+                | Bgtq Int      -- ^ Branch greater than or equal
+                | Jmp Int       -- ^ Inconditionnal jump
+                | Ret           -- ^ Exit the function and push the ToS on the
+                                --   previous stack frame
+                | Call Int      -- ^ Call a function at address
+                | BreakPoint    -- ^ Debugger entry, for now, print the VM
                 deriving (Show)
 
+-- | The values the VM is able to deal with.
 data Value  = I8 !Int8
             | I16 !Int16
             | I32 !Int32
             | F !Float
-            | Ptr !(Int, VarPlace, Int)
+            | Ptr !(Int, VarPlace, Int) -- FIXME: I'm not abstract enough!
             | Union !Int [Value]
             deriving (Show)
 
-data VarPlace = Local | Arg | Temp | Heap
+-- | Where is the var? Used by Ptr.
+data VarPlace = Local | Arg | Temp
              deriving (Show)
 
 -- Almost the same as Value. I don't like it
 data VarType = TyI8 | TyI16 | TyI32 | TyF | TyPtr | UnionId Int
                 deriving (Show)
 
+-- | A tagged union.
 data TyUnion = TyUnion { _unionName :: String, _ctors :: [Ctor] }
+-- | A Data constructor for a tagged union
 data Ctor = Ctor { _ctorName :: String, _ctorMembers :: [VarType] }
 
 makeLenses ''TyUnion
@@ -79,6 +95,8 @@ instance Show TyUnion where
 instance Show Ctor where
     show (Ctor nm membs) = nm ++ " " ++ (unwords . map show $ membs)
 
+-- | returns the first parameters if the type matches with the second
+--   parameter. Throw an exception otherwise.
 typeCheck :: Value -> VarType -> Value
 typeCheck a@(I8 _) TyI8 = a
 typeCheck a@(I16 _) TyI16 = a

@@ -7,6 +7,7 @@ import Data.Bits
 import Control.Applicative
 import Control.Monad.State
 
+-- | Evaluate an arithmetical operation
 evalOp :: Arith -> State Memory ()
 evalOp Add = add' <$> pop <*> pop >>= push
     where

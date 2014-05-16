@@ -10,53 +10,74 @@ import qualified Data.Vector as V
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 
-data FunEnv = FunEnv { _loc :: [Value]
-                     , _args :: [Value]
-                     , _temps :: [Value]
-                     , _retAddr :: (Int, Int) }
+-- | Isomorphic to a stack frame, defines a function execution context
+data FunEnv = FunEnv { _loc :: [Value]        -- ^ local variables
+                     , _args :: [Value]       -- ^ arguments
+                     , _temps :: [Value]      -- ^ stack of temp values
+                     , _retAddr :: (Int, Int) -- ^ return address of the caller
+                     }
             deriving (Show)
 
-data Memory = Memory { _stack :: S.Seq FunEnv
-                     , _pc :: (Int, Int)
-                     , _funs :: V.Vector Function
-                     , _types :: V.Vector TyUnion}
+-- | Will certainly be renamed as VM, root datastructure of the VM
+data Memory = Memory { _stack :: S.Seq FunEnv       -- ^ stack of stack frames
+                     , _pc :: (Int, Int)            -- ^ program counter as
+                                                    --   (functionId, instrNbr)
+                     , _funs :: V.Vector Function   -- ^ Functions of the prgm
+                     , _types :: V.Vector TyUnion}  -- ^ Types defined by prgm
 
-data Function = Function { _name :: String
-                         , _params :: [VarType]
-                         , _retVal :: VarType
-                         , _locVar :: [VarType]
-                         , _impl :: V.Vector Opcode }
+-- | What a function of the program is
+data Function = Function { _name :: String          -- ^ It has a name
+                         , _params :: [VarType]     -- ^ Some param types
+                         , _retVal :: VarType       -- ^ A return type
+                         , _locVar :: [VarType]     -- ^ some local variables
+                         , _impl :: V.Vector Opcode -- ^ an implementation
+                         }
 
 makeLenses ''FunEnv
 makeLenses ''Memory
 makeLenses ''Function
 
-newStackFrame :: Function -> [Value] -> (Int, Int) -> FunEnv
+-- | Utility function to create a stack frame / FunEnv from arguments and
+--   return address
+newStackFrame :: Function       -- ^ the fun to call
+                 -> [Value]     -- ^ its parameters
+                 -> (Int, Int)  -- ^ the curent pc
+                 -> FunEnv      -- ^ the stack frame
 newStackFrame fun' args' retPtr = FunEnv
                                   { _loc = map type2defval $ _locVar fun'
                                   , _args = args'
                                   , _temps = []
                                   , _retAddr = retPtr }
 
-emptyStackFrame :: [Value] -> FunEnv
+-- | Utility function to create an empty stack frame which will terminate the
+--   VM when returned to (Used to create Main's stack frame)
+emptyStackFrame :: [Value]      -- ^ Arguments (ie command line flags)
+                   -> FunEnv    -- ^ the stack frame
 emptyStackFrame param = FunEnv { _loc = []
                              , _args = param
                              , _temps = []
                              , _retAddr = (-1, -1) }
 
+-- | Utility function to create a VM from a set of functions and a set of types
 newVM :: [Function] -> [TyUnion] -> Memory
 newVM funs' types' = Memory { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
                      , _pc = (0, 0)
                      , _funs = V.fromList funs'
                      , _types = V.fromList types'}
 
-newFun :: String -> [VarType] -> VarType -> [VarType] -> [Opcode] -> Function
+-- | Utility function to create a function
+newFun :: String        -- ^ Its name
+          -> [VarType]  -- ^ Its arguments' types
+          -> VarType    -- ^ The return value's type
+          -> [VarType]  -- ^ types of local variables
+          -> [Opcode]   -- ^ its implementation
+          -> Function   -- ^ the resulting object
 newFun name' args' retVal' locs' impl' = Function { _name = name'
                                                  , _params = args'
                                                  , _retVal = retVal'
                                                  , _locVar = locs'
                                                  , _impl = V.fromList impl' }
-
+-- Some lenses to make the code cleaner
 topFun :: Traversal' Memory FunEnv
 topFun = stack . _last
 
@@ -98,6 +119,7 @@ type2defval (UnionId uid) = Union uid [] -- membs
             membs = map (type2defval defs) udef
         -}
 
+-- FIXME: Please, make me readable! looks like perl!
 instance Show Memory where
         show m = "========== Functionality ========\n" ++
             "Stack\n-----\n" ++

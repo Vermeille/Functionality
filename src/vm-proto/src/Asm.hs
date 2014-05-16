@@ -2,7 +2,7 @@ module Asm where
 
 import Opcodes
 
-{- The purpose of this module is only to make a nicer syntax when writing
+{-| The purpose of this module is only to make a nicer syntax when writing
   in-source asm (ie: for testing) -}
 
 add_ :: Opcode

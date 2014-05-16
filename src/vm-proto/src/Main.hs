@@ -18,6 +18,7 @@ vm = newVM [funMain] [struct]
                         , ret_ ]
         struct = TyUnion "Simple" [Ctor "SCtor" [TyI8, TyI16] ]
 
+-- | Main, for now, just execute the code and show what the vm's Main returns
 main :: IO ()
 main = do
         let res = runState runVM vm

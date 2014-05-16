@@ -7,17 +7,21 @@ import Control.Monad.State
 import qualified Data.Sequence as S
 import Data.Maybe (fromJust, fromMaybe)
 
+-- | Push a value on the stack
 push :: Value -> State Memory ()
 push v = state $ \mem -> ((), mem & topFun . temps  %~ (v:))
 
+-- | Pop a value from the stack
 pop :: State Memory Value
 pop = state $ \mem -> (topVal mem, mem & topFun . temps %~ tail)
     where
         topVal mem = fromMaybe (error "poping an empty stack") $ mem ^? topFun . topTemp
 
+-- | evaluate push instruction
 evalPush :: PushOp -> State Memory ()
 evalPush (Pushimm v) = push v
 
+-- | evaluate load instructions
 evalLd :: LdOp -> State Memory ()
 evalLd (Ldloc n) = preuse (topFun . loc . ix n) >>= push . fromJust
 evalLd (Ldloca n) = do
