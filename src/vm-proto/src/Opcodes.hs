@@ -3,6 +3,7 @@ module Opcodes where
 
 import Data.Int
 import Control.Lens
+import Data.List (intercalate)
 
 data Opcode = Ar Arith
             | Ld LdOp
@@ -49,7 +50,7 @@ data Value  = I8 !Int8
             | I32 !Int32
             | F !Float
             | Ptr !(Int, VarPlace, Int)
-            | Union Int [Value]
+            | Union !Int [Value]
             deriving (Show)
 
 data VarPlace = Local | Arg | Temp | Heap
@@ -70,6 +71,13 @@ instance Show Opcode where
         show (Ld ld) = show ld
         show (Push p) = show p
         show (Branch b) = show b
+
+instance Show TyUnion where
+    show (TyUnion nm ctors') = "data " ++ nm ++ " = "
+        ++ (intercalate "\n  | " . map show $ ctors')
+
+instance Show Ctor where
+    show (Ctor nm membs) = nm ++ " " ++ (unwords . map show $ membs)
 
 typeCheck :: Value -> VarType -> Value
 typeCheck a@(I8 _) TyI8 = a

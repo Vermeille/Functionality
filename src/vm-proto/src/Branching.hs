@@ -52,5 +52,5 @@ evalBranch (Call funId) = do
         stack %= (S.|> newStackFrame funDef args' (curFun, curInstr + 1))
         pc .= (funId, -1)
 evalBranch (BreakPoint) = do
-        machine <- get
-        return (unsafePerformIO $ print machine)
+        vm <- get
+        return $! (unsafePerformIO $ putStrLn (show vm))

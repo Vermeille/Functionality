@@ -100,11 +100,12 @@ type2defval (UnionId uid) = Union uid [] -- membs
 
 instance Show Memory where
         show m = "========== Functionality ========\n" ++
-            "Stack:\n  " ++
+            "Stack\n-----\n" ++
             (intercalate "\n  " . map show . F.toList $ _stack m) ++
             "\n\nCurrently in fun " ++ (show . fst $ _pc m) ++ " at instr " ++
-            (show . snd $ _pc m) ++ "\n\nCode:\n" ++
-            (intercalate "\n" . map show . V.toList $ _funs m) ++ "\n"
+            (show . snd $ _pc m) ++ "\n\nCode\n----\n\n" ++
+            (intercalate "\n" . map show . V.toList $ _funs m) ++ "\n\nTypes\n"
+            ++ "-----\n\n" ++ (intercalate "\n" . map show . V.toList $ _types m)
 
 instance Show Function where
         show f =
