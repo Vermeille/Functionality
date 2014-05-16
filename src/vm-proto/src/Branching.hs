@@ -28,11 +28,11 @@ popFun = do
             S.EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
             previous S.:> _ -> stack .= previous
 
-typeCheck :: Value -> Value -> Value
-typeCheck a@(I8 _) (I8 _) = a
-typeCheck a@(I16 _) (I16 _) = a
-typeCheck a@(I32 _) (I32 _) = a
-typeCheck a@(F _) (F _) = a
+typeCheck :: Value -> VarType -> Value
+typeCheck a@(I8 _) TyI8 = a
+typeCheck a@(I16 _) TyI16 = a
+typeCheck a@(I32 _) TyI32 = a
+typeCheck a@(F _) TyF = a
 typeCheck _ _ = error "typechecking failed"
 
 evalBranch :: BranchOp -> State Memory ()

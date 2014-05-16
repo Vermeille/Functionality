@@ -21,9 +21,9 @@ data Memory = Memory { _stack :: S.Seq FunEnv
                      , _funs :: V.Vector Function}
 
 data Function = Function { _name :: String
-                         , _params :: [Value]
-                         , _retVal :: Value
-                         , _locVar :: [Value]
+                         , _params :: [VarType]
+                         , _retVal :: VarType
+                         , _locVar :: [VarType]
                          , _impl :: V.Vector Opcode }
 
 makeLenses ''FunEnv
@@ -31,7 +31,7 @@ makeLenses ''Memory
 makeLenses ''Function
 
 newStackFrame :: Function -> [Value] -> (Int, Int) -> FunEnv
-newStackFrame fun' args' retPtr = FunEnv { _loc = _locVar fun'
+newStackFrame fun' args' retPtr = FunEnv { _loc = map type2defval $ _locVar fun'
                                   , _args = args'
                                   , _temps = []
                                   , _retAddr = retPtr }
@@ -47,7 +47,7 @@ newVM funs' = Memory { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
                      , _pc = (0, 0)
                      , _funs = V.fromList funs' }
 
-newFun :: String -> [Value] -> Value -> [Value] -> [Opcode] -> Function
+newFun :: String -> [VarType] -> VarType -> [VarType] -> [Opcode] -> Function
 newFun name' args' retVal' locs' impl' = Function { _name = name'
                                                  , _params = args'
                                                  , _retVal = retVal'
@@ -74,10 +74,17 @@ _fun = _1
 _instr :: Lens' (Int, Int) Int
 _instr = _2
 
-takeVar :: VarType -> (FunEnv -> [Value])
+takeVar :: VarPlace -> (FunEnv -> [Value])
 takeVar Local = _loc
 takeVar Arg = _args
 takeVar Temp = _temps
+
+type2defval :: VarType -> Value
+type2defval TyI8 = I8 0
+type2defval TyI16 = I16 0
+type2defval TyI32 = I32 0
+type2defval TyF = F 0
+type2defval TyPtr = Ptr (-1, Heap, 0)
 
 instance Show Memory where
         show m = "========== Functionality ========\n" ++

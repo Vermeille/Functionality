@@ -45,14 +45,19 @@ data Value  = I8 !Int8
             | I16 !Int16
             | I32 !Int32
             | F !Float
-            | Ptr !(Int, VarType, Int)
+            | Ptr !(Int, VarPlace, Int)
             deriving (Show)
 
-data VarType = Local | Arg | Temp
+data VarPlace = Local | Arg | Temp | Heap
              deriving (Show)
+
+-- Almost the same as Value. I don't like it
+data VarType = TyI8 | TyI16 | TyI32 | TyF | TyPtr
+                deriving (Show)
 
 instance Show Opcode where
         show (Ar a) = show a
         show (Ld ld) = show ld
         show (Push p) = show p
         show (Branch b) = show b
+

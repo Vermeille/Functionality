@@ -2,6 +2,7 @@
 module Main where
 
 import VM
+import Asm
 import Eval
 import Opcodes
 import Data.Int
@@ -21,12 +22,12 @@ testOp op opcode a b =
             Just val -> valToInt val == fromIntegral (a `op` b)
             Nothing ->  False
         where
-            vm = newVM [code]
-            code = newFun "Main" [] (I8 0) []
-                    [ Push (Pushimm (I8 a))
-                    , Push (Pushimm (I8 b))
+            vm = newVM [code] []
+            code = newFun "Main" [] TyI8 []
+                    [ push_ (I8 a)
+                    , push_ (I8 b)
                     , Ar opcode
-                    , Branch Ret]
+                    , ret_ ]
 
 prop_add = testOp (+) Add
 prop_sub = testOp (-) Sub
@@ -46,16 +47,16 @@ testBr op opcode a b =
             Just val -> valToInt val == (if a `op` b then 1 else 0)
             Nothing ->  False
         where
-            vm = newVM [code]
-            code = newFun "Main" [] (I8 0) []
-                    [ Push (Pushimm (I8 a)) -- 0
-                    , Push (Pushimm (I8 b)) -- 1
-                    , Ar Cmp                -- 2
-                    , Branch (opcode 6)     -- 3
-                    , Push (Pushimm (I8 0)) -- 4
-                    , Branch Ret            -- 5
-                    , Push (Pushimm (I8 1)) -- 6
-                    , Branch (Ret)]         -- 7
+            vm = newVM [code] []
+            code = newFun "Main" [] TyI8 []
+                    [ push_ (I8 a)      -- 0
+                    , push_ (I8 b)      -- 1
+                    , cmp_              -- 2
+                    , Branch (opcode 6) -- 3
+                    , push_ (I8 0)      -- 4
+                    , ret_              -- 5
+                    , push_ (I8 1)      -- 6
+                    , ret_ ]            -- 7
 
 prop_beq  a b = a - b < 5 ==> testBr (==) Beq a b
 prop_bneq a b = a - b < 5 ==> testBr (/=) Bneq a b
@@ -73,17 +74,32 @@ prop_call a b =
             Just val -> valToInt val == fromIntegral (a + b)
             Nothing ->  False
         where
-            vm = newVM [vmMain, vmAdd]
-            vmMain = newFun "Main" [] (I8 0) []
-                    [ Push (Pushimm (I8 a))
-                    , Push (Pushimm (I8 b))
-                    , Branch (Call 1)
-                    , Branch Ret]
-            vmAdd = newFun "Add" [I8 0, I8 0] (I8 0) []
-                    [ Ld (Ldarg 0)
-                    , Ld (Ldarg 1)
-                    , Ar Add
-                    , Branch Ret ]
+            vm = newVM [vmMain, vmAdd] []
+            vmMain = newFun "Main" [] TyI8 []
+                    [ push_ (I8 a)
+                    , push_ (I8 b)
+                    , call_ 1
+                    , ret_]
+            vmAdd = newFun "Add" [TyI8, TyI8] TyI8 []
+                    [ ldarg_ 0
+                    , ldarg_ 1
+                    , add_
+                    , ret_ ]
 
+prop_simple_struct a b =
+        let res = runState runVM vm in
+        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+            ++ " in: " ++ show a ++ " " ++ show b
+            ++ " expected: " ++ undefined )) $
+        case res ^? _2 . tos of
+            Just val -> undefined
+            Nothing ->  False
+        where
+            vm = newVM [vmMain] [vmSStruct]
+            vmMain = newFun "Main" [] (UnionId 0) []
+                    [ push_ (I16 b)
+                    , push_ (I8 a)
+                    , construct_ 0 0 ]
+            vmSStruct = TyUnion "SStruct" [Ctor "SCtor" [TyI8, TyI16]]
 
 main = $quickCheckAll

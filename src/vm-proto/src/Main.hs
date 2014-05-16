@@ -7,14 +7,14 @@ import Control.Lens
 import Control.Monad.State
 
 funMain :: Function
-funMain = newFun "Main" [] (I16 0) [] $
+funMain = newFun "Main" [] TyI16 [] $
                 [ Push (Pushimm (I16 1))
                 , Push (Pushimm (I16 666))
                 , Branch (Call 1)
                 , Branch Ret ]
 
 funAdd :: Function
-funAdd = newFun "Add" [I16 0, I16 0] (I16 0) []
+funAdd = newFun "Add" [TyI16, TyI16] TyI16 []
                 [ Ld (Ldarg 0)
                 , Ld (Ldarg 1)
                 , Ar Add
