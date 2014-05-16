@@ -28,6 +28,18 @@ evalLd (Lda n) = do
             Ptr (s', ty, n) <- pop
             val <- preuse (stack . ix s' . to (takeVar ty) . ix n)
             push $ fromJust val
+evalLd (Construct uid cid) = do
+            udef <- getUnionDef
+            let Just uMembs = (udef ^? ctors . ix cid . ctorMembers)
+            let nbMembs = length uMembs
+            args' <- uses (topFun . temps) (take nbMembs)
+            topFun . temps %= drop nbMembs
+            _ <- return $ zipWith typeCheck args' uMembs
+            evalPush $ Pushimm (Union uid args')
+            where
+                getUnionDef :: State Memory TyUnion
+                getUnionDef = preuse (types . ix uid) >>=
+                                return . fromMaybe (error ("union #" ++ show uid ++ "doesnt exist"))
 
 evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
 

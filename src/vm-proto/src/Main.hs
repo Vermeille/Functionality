@@ -24,7 +24,7 @@ funAdd = newFun "Add" [TyI16, TyI16] TyI16 []
 
 main :: IO ()
 main = do
-        let vm = newVM [funMain, funAdd]
+        let vm = newVM [funMain, funAdd] []
         let res = runState runVM vm
         print $ res ^. _2 . stack
 

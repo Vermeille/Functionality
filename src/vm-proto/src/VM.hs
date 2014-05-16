@@ -18,7 +18,8 @@ data FunEnv = FunEnv { _loc :: [Value]
 
 data Memory = Memory { _stack :: S.Seq FunEnv
                      , _pc :: (Int, Int)
-                     , _funs :: V.Vector Function}
+                     , _funs :: V.Vector Function
+                     , _types :: V.Vector TyUnion}
 
 data Function = Function { _name :: String
                          , _params :: [VarType]
@@ -31,7 +32,8 @@ makeLenses ''Memory
 makeLenses ''Function
 
 newStackFrame :: Function -> [Value] -> (Int, Int) -> FunEnv
-newStackFrame fun' args' retPtr = FunEnv { _loc = map type2defval $ _locVar fun'
+newStackFrame fun' args' retPtr = FunEnv
+                                  { _loc = map type2defval $ _locVar fun'
                                   , _args = args'
                                   , _temps = []
                                   , _retAddr = retPtr }
@@ -42,10 +44,11 @@ emptyStackFrame param = FunEnv { _loc = []
                              , _temps = []
                              , _retAddr = (-1, -1) }
 
-newVM :: [Function] -> Memory
-newVM funs' = Memory { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
+newVM :: [Function] -> [TyUnion] -> Memory
+newVM funs' types' = Memory { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
                      , _pc = (0, 0)
-                     , _funs = V.fromList funs' }
+                     , _funs = V.fromList funs'
+                     , _types = V.fromList types'}
 
 newFun :: String -> [VarType] -> VarType -> [VarType] -> [Opcode] -> Function
 newFun name' args' retVal' locs' impl' = Function { _name = name'
@@ -85,6 +88,15 @@ type2defval TyI16 = I16 0
 type2defval TyI32 = I32 0
 type2defval TyF = F 0
 type2defval TyPtr = Ptr (-1, Heap, 0)
+type2defval (UnionId uid) = Union uid [] -- membs
+        {-
+        where
+            udef =
+                case defs ^? ix uid . ctors . ix 0 of
+                    Just vals -> vals
+                    Nothing -> error "union #" ++ show uid ++ " does not exist"
+            membs = map (type2defval defs) udef
+        -}
 
 instance Show Memory where
         show m = "========== Functionality ========\n" ++
