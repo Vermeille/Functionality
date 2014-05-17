@@ -44,6 +44,9 @@ ldarg_ = Ld . Ldarg
 lda_ :: Int -> Opcode
 lda_ = Ld . Lda
 
+ldslot_ :: Int -> Opcode
+ldslot_ = Ld . Ldslot
+
 dup_ :: Opcode
 dup_ = Ld Dup
 

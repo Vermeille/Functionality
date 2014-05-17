@@ -36,6 +36,7 @@ data LdOp = Ldloc Int           -- ^ Push the nth local variable on the stack
           | Ldloca Int          -- ^ Push the nth local var's address
           | Ldarg Int           -- ^ Push the nth argument
           | Lda Int             -- ^ FIXME: Still obscure.
+          | Ldslot Int          -- ^ Push the nth member of the union on ToS
           | Dup                 -- ^ Duplicate the ToS
           | Construct Int Int   -- ^ Construct the nth Union with the mth ctor
                                 --   taking members on the stack

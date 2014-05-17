@@ -44,6 +44,11 @@ evalLd (Construct uid cid) = do
                 getUnionDef :: State Memory TyUnion
                 getUnionDef = preuse (types . ix uid) >>=
                                 return . fromMaybe (error ("union #" ++ show uid ++ "doesnt exist"))
+evalLd (Ldslot n) = do
+        Just val <- preuse tos
+        case val of
+            Union _ vals -> evalPush $ Pushimm (vals !! n)
+            _ -> error "not an Union on top of stack"
 
 evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
 

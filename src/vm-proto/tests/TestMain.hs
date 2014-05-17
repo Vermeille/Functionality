@@ -86,23 +86,7 @@ prop_call a b =
                     , add_
                     , ret_ ]
 
-prop_simple_struct a b =
-        let res = runState runVM vm in
-        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
-            ++ " in: " ++ show a ++ " " ++ show b
-            ++ " expected: " ++ undefined )) $
-        case res ^? _2 . tos of
-            Just val -> undefined
-            Nothing ->  False
-        where
-            vm = newVM [vmMain] [vmSStruct]
-            vmMain = newFun "Main" [] (UnionId 0) []
-                    [ push_ (I16 b)
-                    , push_ (I8 a)
-                    , construct_ 0 0 ]
-            vmSStruct = TyUnion "SStruct" [Ctor "SCtor" [TyI8, TyI16]]
-
-prop_match aGen bGen = do
+prop_match = do
         a <- choose (0, 2)
         b <- choose (0, 2)
         return $! verify a b
@@ -130,5 +114,30 @@ prop_match aGen bGen = do
                                                   , Ctor "SCtor2" [TyI8]
                                                   , Ctor "SCtor3" [TyI8] ]
                     expected = if a == b then 1 else 0
+
+prop_ldslot = do
+        a <- choose (0, 2)
+        return $! verify a
+        where
+            verify a = let res = runState runVM vm in
+                whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+                    ++ " in: " ++ show a
+                    ++ " expected: " ++ show a )) $
+                case res ^? _2 . tos of
+                    Just (I8 val) -> val == fromIntegral a
+                    Nothing ->  False
+                where
+                    vm = newVM [vmMain] [vmSStruct]
+
+                    vmMain = newFun "Main" [] TyI8 []
+                            [ push_ (I8 2)      -- 0
+                            , push_ (I8 1)      -- 1
+                            , push_ (I8 0)      -- 2
+                            , construct_ 0 0    -- 3
+                            , ldslot_ a         -- 4
+                            , ret_              -- 5
+                            ]
+                    vmSStruct = TyUnion "SStruct" [ Ctor "SCtor1"
+                                                    [TyI8, TyI8, TyI8] ]
 
 main = $quickCheckAll
