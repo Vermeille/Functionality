@@ -6,6 +6,7 @@ misleading), as well as types and values. You may want to read about the VM
 design explained in the module VM first.
 -}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE BangPatterns #-}
 module Opcodes where
 
 import Data.Int
@@ -37,6 +38,7 @@ data LdOp = Ldloc Int           -- ^ Push the nth local variable on the stack
           | Ldarg Int           -- ^ Push the nth argument
           | Lda Int             -- ^ FIXME: Still obscure.
           | Ldslot Int          -- ^ Push the nth member of the union on ToS
+          | Ldslota Int         -- ^ Push the nth member's addr of union on ToS
           | Dup                 -- ^ Duplicate the ToS
           | Construct Int Int   -- ^ Construct the nth Union with the mth ctor
                                 --   taking members on the stack
@@ -65,13 +67,15 @@ data Value  = I8 !Int8
             | I16 !Int16
             | I32 !Int32
             | F !Float
-            | Ptr !(Int, VarPlace, Int) -- FIXME: I'm not abstract enough!
-            | Union !Int [Value]
+            | Ptr !(VarPlace, [Int]) -- FIXME: I'm not abstract enough!
+            | Union {_ctorId :: !Int, _unionValues :: [Value] }
             deriving (Show)
 
 -- | Where is the var? Used by Ptr.
 data VarPlace = Local | Arg | Temp | Heap
              deriving (Show)
+
+makeLenses ''Value
 
 -- Almost the same as Value. I don't like it
 data VarType = TyI8 | TyI16 | TyI32 | TyF | TyPtr | UnionId Int

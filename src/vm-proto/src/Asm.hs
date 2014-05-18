@@ -47,6 +47,9 @@ lda_ = Ld . Lda
 ldslot_ :: Int -> Opcode
 ldslot_ = Ld . Ldslot
 
+ldslota_ :: Int -> Opcode
+ldslota_ = Ld . Ldslota
+
 dup_ :: Opcode
 dup_ = Ld Dup
 

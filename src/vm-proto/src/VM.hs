@@ -98,6 +98,10 @@ _fun = _1
 _instr :: Lens' (Int, Int) Int
 _instr = _2
 
+ixUnion :: [Int] -> Traversal' Value Value
+ixUnion [] = id
+ixUnion (ptr:ptrs) = unionValues . ix ptr . ixUnion ptrs
+
 takeVar :: VarPlace -> (FunEnv -> [Value])
 takeVar Local = _loc
 takeVar Arg = _args
@@ -108,16 +112,8 @@ type2defval TyI8 = I8 0
 type2defval TyI16 = I16 0
 type2defval TyI32 = I32 0
 type2defval TyF = F 0
-type2defval TyPtr = Ptr (-1, Heap, 0)
+type2defval TyPtr = Ptr (Heap, [])
 type2defval (UnionId uid) = Union uid [] -- membs
-        {-
-        where
-            udef =
-                case defs ^? ix uid . ctors . ix 0 of
-                    Just vals -> vals
-                    Nothing -> error "union #" ++ show uid ++ " does not exist"
-            membs = map (type2defval defs) udef
-        -}
 
 -- FIXME: Please, make me readable! looks like perl!
 instance Show Memory where
@@ -135,3 +131,4 @@ instance Show Function where
             (intercalate " -> " . map show $ _params f) ++ " -> " ++ show (_retVal f) ++
             " {\nlocals: " ++ show (_locVar f) ++ "\ncode:\n  " ++
             (intercalate "\n  " . map show . V.toList $ _impl f) ++ "\n}\n"
+
