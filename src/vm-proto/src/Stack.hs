@@ -56,8 +56,20 @@ evalLd (Ldslota n) = do
                     stackLevel <- uses stack S.length
                     Just tempLevel <- preuses (topFun . temps) length
                     push $ Ptr (Temp, [stackLevel, tempLevel, n])
-                Ptr (ty, ptrs) -> pop >> push $ Ptr (ty, ptrs ++ [n])
+                Ptr (ty, ptrs) -> do
+                    _ <- pop
+                    push $ Ptr (ty, ptrs ++ [n])
                 _ -> error $ show val ++ " is not a proper value for ldslota"
+evalLd (Ldarga n) = do
+        stackLevel <- uses stack S.length
+        push $ Ptr (Arg, [stackLevel, n])
 
 evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
 
+evalSt :: StOp -> State Memory ()
+evalSt (Stloc addr) = do
+    val <- pop
+    topFun . loc . ix addr .= val
+evalSt (Starg addr) = do
+    val <- pop
+    topFun . args . ix addr .= val

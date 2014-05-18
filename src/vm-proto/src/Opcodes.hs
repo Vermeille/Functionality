@@ -16,6 +16,7 @@ import Data.List (intercalate)
 -- | For now, we have four categories of instructions
 data Opcode = Ar Arith
             | Ld LdOp
+            | St StOp
             | Push PushOp
             | Branch BranchOp
 
@@ -36,6 +37,7 @@ data Arith = Add
 data LdOp = Ldloc Int           -- ^ Push the nth local variable on the stack
           | Ldloca Int          -- ^ Push the nth local var's address
           | Ldarg Int           -- ^ Push the nth argument
+          | Ldarga Int          -- ^ Push the nth argument address
           | Lda Int             -- ^ FIXME: Still obscure.
           | Ldslot Int          -- ^ Push the nth member of the union on ToS
           | Ldslota Int         -- ^ Push the nth member's addr of union on ToS
@@ -43,6 +45,12 @@ data LdOp = Ldloc Int           -- ^ Push the nth local variable on the stack
           | Construct Int Int   -- ^ Construct the nth Union with the mth ctor
                                 --   taking members on the stack
           deriving (Show)
+
+data StOp   = Stloc Int
+            | Stlocat Int
+            | Starg Int
+            | Stargate Int
+            deriving (Show)
 
 data PushOp = Pushimm Value     -- ^ Push an immediate value
             deriving (Show)

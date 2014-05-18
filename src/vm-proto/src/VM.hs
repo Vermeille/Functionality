@@ -102,6 +102,14 @@ ixUnion :: [Int] -> Traversal' Value Value
 ixUnion [] = id
 ixUnion (ptr:ptrs) = unionValues . ix ptr . ixUnion ptrs
 
+ixPtr :: Value -> Traversal' Memory Value
+ixPtr (Ptr (Local, frameIx:locIx:unionIx)) =
+    stack . ix frameIx . loc . ix locIx . ixUnion unionIx
+ixPtr (Ptr (Arg, frameIx:argIx:unionIx)) =
+    stack . ix frameIx . args . ix argIx . ixUnion unionIx
+ixPtr (Ptr (Temp, frameIx:argIx:unionIx)) =
+    stack . ix frameIx . temps . ix argIx . ixUnion unionIx
+
 takeVar :: VarPlace -> (FunEnv -> [Value])
 takeVar Local = _loc
 takeVar Arg = _args

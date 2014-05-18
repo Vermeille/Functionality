@@ -15,6 +15,7 @@ eval (Ar a) = evalOp a
 eval (Ld ld) = evalLd ld
 eval (Push p) = evalPush p
 eval (Branch b) = evalBranch b
+eval (St s) = evalSt s
 
 -- | The main function: executes the code until pc is set to -1
 runVM :: State Memory ()
