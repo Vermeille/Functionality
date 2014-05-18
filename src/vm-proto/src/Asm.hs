@@ -56,6 +56,18 @@ dup_ = Ld Dup
 construct_ :: Int -> Int -> Opcode
 construct_ unionid ctor = Ld (Construct unionid ctor)
 
+stloc_ :: Int -> Opcode
+stloc_ = St . Stloc
+
+stlocat_ :: Int -> Opcode
+stlocat_ = St . Stlocat
+
+starg_ :: Int -> Opcode
+starg_ = St . Starg
+
+stargate_ :: Int -> Opcode
+stargate_ = St . Stargate
+
 beq_ :: Int -> Opcode
 beq_ = Branch . Beq
 

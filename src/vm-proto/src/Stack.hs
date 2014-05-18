@@ -70,6 +70,15 @@ evalSt :: StOp -> State Memory ()
 evalSt (Stloc addr) = do
     val <- pop
     topFun . loc . ix addr .= val
+evalSt (Stlocat n) = do
+    Just val <- preuse (topFun . loc . ix n)
+    addr <- pop
+    ixPtr addr .= val
 evalSt (Starg addr) = do
     val <- pop
     topFun . args . ix addr .= val
+evalSt (Stargate n) = do
+    Just val <- preuse (topFun . args . ix n)
+    addr <- pop
+    ixPtr addr .= val
+
