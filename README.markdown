@@ -1,6 +1,8 @@
 Functionality
 =============
 
+tl;dr : for now, go directly to src/vm-proto/, read the tests and the code documentation. I'm still specifying this thing, and there's still no way to have user input (write your own main function)
+
 Since I am a really bad developper when it comes to low level stuff, please
 consider this work as heavily unstable, and as a playground for me. Trusting
 this project is more or less like trusting a total stranger asking to borrow
@@ -99,4 +101,3 @@ broken-by-design, and analyze the stack:
 This is why the warning given in preamble should be taken seriously. Or maybe
 you can just execute your main 5 times to make it actually run once,
 statistically.
-
