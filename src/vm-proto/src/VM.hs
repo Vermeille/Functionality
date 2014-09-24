@@ -9,28 +9,31 @@ import Data.List (intercalate)
 import qualified Data.Vector as V
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
+import qualified Data.IntMap as I
 
 -- | Isomorphic to a stack frame, defines a function execution context
-data FunEnv = FunEnv { _loc :: [Value]        -- ^ local variables
-                     , _args :: [Value]       -- ^ arguments
-                     , _temps :: [Value]      -- ^ stack of temp values
+data FunEnv = FunEnv { _loc     :: [ValueIx]  -- ^ local variables
+                     , _args    :: [ValueIx]  -- ^ arguments
+                     , _temps   :: [ValueIx]  -- ^ stack of temp values
                      , _retAddr :: (Int, Int) -- ^ return address of the caller
                      }
             deriving (Show)
 
 -- | Will certainly be renamed as VM, root datastructure of the VM
 data VM = VM { _stack :: S.Seq FunEnv       -- ^ stack of stack frames
-                     , _pc :: (Int, Int)            -- ^ program counter as
-                                                    --   (functionId, instrNbr)
-                     , _funs :: V.Vector Function   -- ^ Functions of the prgm
-                     , _types :: V.Vector TyUnion}  -- ^ Types defined by prgm
+             , _pc    :: (Int, Int)         -- ^ program counter as
+                                            --   (functionId, instrNbr)
+             , _funs  :: V.Vector Function  -- ^ Functions of the prgm
+             , _types :: V.Vector TyUnion   -- ^ Types defined by prgm
+             , _mmu   :: I.IntMap Value
+             }
 
 -- | What a function of the program is
-data Function = Function { _name :: String          -- ^ It has a name
-                         , _params :: [VarType]     -- ^ Some param types
-                         , _retVal :: VarType       -- ^ A return type
-                         , _locVar :: [VarType]     -- ^ some local variables
-                         , _impl :: V.Vector Opcode -- ^ an implementation
+data Function = Function { _name   :: String          -- ^ It has a name
+                         , _params :: [VarType]       -- ^ Some param types
+                         , _retVal :: VarType         -- ^ A return type
+                         , _locVar :: [VarType]       -- ^ some local variables
+                         , _impl   :: V.Vector Opcode -- ^ an implementation
                          }
 
 makeLenses ''FunEnv
@@ -98,9 +101,11 @@ _fun = _1
 _instr :: Lens' (Int, Int) Int
 _instr = _2
 
+{-
 ixUnion :: [Int] -> Traversal' Value Value
 ixUnion [] = id
 ixUnion (ptr:ptrs) = unionValues . ix ptr . ixUnion ptrs
+-}
 
 ixPtr :: Value -> Traversal' VM Value
 ixPtr (Ptr (Local, frameIx:locIx:unionIx)) =
@@ -120,7 +125,7 @@ type2defval TyI8 = I8 0
 type2defval TyI16 = I16 0
 type2defval TyI32 = I32 0
 type2defval TyF = F 0
-type2defval TyPtr = Ptr (Heap, [])
+-- FIXME: type2defval TyPtr = Ptr (Heap, [])
 type2defval (UnionId uid) = Union uid [] -- membs
 
 -- FIXME: Please, make me readable! looks like perl!

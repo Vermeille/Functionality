@@ -26,12 +26,14 @@ evalLd :: LdOp -> State VM ()
 evalLd (Ldloc n) = preuse (topFun . loc . ix n) >>= push . fromJust
 evalLd (Ldloca n) = do
             stackLevel <- uses stack S.length
-            push (Ptr (Local, [stackLevel, n]))
+            undefined -- FIXME: push (Ptr (Local, [stackLevel, n]))
 evalLd (Ldarg n) = preuse (topFun . args . ix n) >>= push . fromJust
+{- FIXME
 evalLd (Lda n) = do
             Ptr (ty, s':n:n') <- pop
             val <- preuse (stack . ix s' . to (takeVar ty) . ix n . ixUnion n')
             push $ fromJust val
+-}
 evalLd (Construct uid cid) = do
             udef <- getUnionDef
             let Just uMembs = udef ^? ctors . ix cid . ctorMembers

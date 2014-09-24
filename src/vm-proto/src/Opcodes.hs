@@ -70,27 +70,30 @@ data BranchOp   = Beq Int       -- ^ Branch Equal
                                 --   to arg2
                 deriving (Show)
 
--- | The values the VM is able to deal with.
-data Value  = I8 !Int8
-            | I16 !Int16
-            | I32 !Int32
-            | F !Float
-            | Ptr !(VarPlace, [Int]) -- FIXME: I'm not abstract enough!
-            | Union {_ctorId :: !Int, _unionValues :: [Value] }
-            deriving (Show)
-
--- | Where is the var? Used by Ptr.
-data VarPlace = Local | Arg | Temp | Heap
-             deriving (Show)
-
-makeLenses ''Value
-
 -- Almost the same as Value. I don't like it
 data VarType = TyI8 | TyI16 | TyI32 | TyF | TyPtr | UnionId Int
                 deriving (Show)
 
+-- | Indexes values through the "MMU". It's just an address and a type
+data ValueIx = ValueIx !VarType !Int
+
+instance Show ValueIx where
+        show (ValueIx ty idx) = show ty ++ " [" ++ show idx ++ "]"
+
+-- | The values the VM is able to deal with.
+data Value  = I8  !Int8
+            | I16 !Int16
+            | I32 !Int32
+            | F   !Float
+            | Ptr !Int -- an index in the MMU
+            | Union !Int
+            deriving (Show)
+
+makeLenses ''Value
+
 -- | A tagged union.
 data TyUnion = TyUnion { _unionName :: String, _ctors :: [Ctor] }
+
 -- | A Data constructor for a tagged union
 data Ctor = Ctor { _ctorName :: String, _ctorMembers :: [VarType] }
 
@@ -102,6 +105,7 @@ instance Show Opcode where
         show (Ld ld) = show ld
         show (Push p) = show p
         show (Branch b) = show b
+        show (St _) = undefined -- FIXME
 
 instance Show TyUnion where
     show (TyUnion nm ctors') = "data " ++ nm ++ " = "
