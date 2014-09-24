@@ -86,7 +86,7 @@ data Value  = I8  !Int8
             | I32 !Int32
             | F   !Float
             | Ptr !Int -- an index in the MMU
-            | Union !Int
+            | Union { _ctorId :: Int, _unionMembers :: [Value] }
             deriving (Show)
 
 makeLenses ''Value

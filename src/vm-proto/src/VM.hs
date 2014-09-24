@@ -12,20 +12,23 @@ import qualified Data.Sequence as S
 import qualified Data.IntMap as I
 
 -- | Isomorphic to a stack frame, defines a function execution context
-data FunEnv = FunEnv { _loc     :: [ValueIx]  -- ^ local variables
-                     , _args    :: [ValueIx]  -- ^ arguments
-                     , _temps   :: [ValueIx]  -- ^ stack of temp values
+data FunEnv = FunEnv { _loc     :: [Value]  -- ^ local variables
+                     , _args    :: [Value]  -- ^ arguments
+                     , _temps   :: [Value]  -- ^ stack of temp values
                      , _retAddr :: (Int, Int) -- ^ return address of the caller
                      }
             deriving (Show)
 
--- | Will certainly be renamed as VM, root datastructure of the VM
+-- | Root datastructure of the VM
 data VM = VM { _stack :: S.Seq FunEnv       -- ^ stack of stack frames
              , _pc    :: (Int, Int)         -- ^ program counter as
                                             --   (functionId, instrNbr)
              , _funs  :: V.Vector Function  -- ^ Functions of the prgm
              , _types :: V.Vector TyUnion   -- ^ Types defined by prgm
-             , _mmu   :: I.IntMap Value
+             , _mmu   :: I.IntMap Value     -- ^ gives the actual Value linked
+                                            --   to the ValueIxs
+             , _esp   :: Int                -- ^ index which points to the top
+                                            --   of the stack in MMU
              }
 
 -- | What a function of the program is
@@ -39,6 +42,9 @@ data Function = Function { _name   :: String          -- ^ It has a name
 makeLenses ''FunEnv
 makeLenses ''VM
 makeLenses ''Function
+
+sizeofStackFrame :: Function -> Int
+sizeofStackFrame fun = length (fun ^. name)
 
 -- | Utility function to create a stack frame / FunEnv from arguments and
 --   return address
@@ -66,7 +72,10 @@ newVM :: [Function] -> [TyUnion] -> VM
 newVM funs' types' = VM { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
                      , _pc = (0, 0)
                      , _funs = V.fromList funs'
-                     , _types = V.fromList types'}
+                     , _types = V.fromList types'
+                     , _mmu = I.empty
+                     , _esp = 0
+                     }
 
 -- | Utility function to create a function
 newFun :: String        -- ^ Its name
@@ -107,18 +116,7 @@ ixUnion [] = id
 ixUnion (ptr:ptrs) = unionValues . ix ptr . ixUnion ptrs
 -}
 
-ixPtr :: Value -> Traversal' VM Value
-ixPtr (Ptr (Local, frameIx:locIx:unionIx)) =
-    stack . ix frameIx . loc . ix locIx . ixUnion unionIx
-ixPtr (Ptr (Arg, frameIx:argIx:unionIx)) =
-    stack . ix frameIx . args . ix argIx . ixUnion unionIx
-ixPtr (Ptr (Temp, frameIx:argIx:unionIx)) =
-    stack . ix frameIx . temps . ix argIx . ixUnion unionIx
-
-takeVar :: VarPlace -> (FunEnv -> [Value])
-takeVar Local = _loc
-takeVar Arg = _args
-takeVar Temp = _temps
+-- ixPtr :: Value -> Traversal' VM Value
 
 type2defval :: VarType -> Value
 type2defval TyI8 = I8 0
@@ -126,7 +124,7 @@ type2defval TyI16 = I16 0
 type2defval TyI32 = I32 0
 type2defval TyF = F 0
 -- FIXME: type2defval TyPtr = Ptr (Heap, [])
-type2defval (UnionId uid) = Union uid [] -- membs
+-- type2defval (UnionId uid) = Union uid [] -- membs
 
 -- FIXME: Please, make me readable! looks like perl!
 instance Show VM where

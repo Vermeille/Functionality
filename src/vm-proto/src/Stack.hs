@@ -57,14 +57,16 @@ evalLd (Ldslota n) = do
                 Union _ _ -> do
                     stackLevel <- uses stack S.length
                     Just tempLevel <- preuses (topFun . temps) length
-                    push $ Ptr (Temp, [stackLevel, tempLevel, n])
+                    undefined -- FIXME: push $ Ptr (Temp, [stackLevel, tempLevel, n])
+                {- FIXME
                 Ptr (ty, ptrs) -> do
                     _ <- pop
-                    push $ Ptr (ty, ptrs ++ [n])
+                    undefined -- FIXME: push $ Ptr (ty, ptrs ++ [n])
+                -}
                 _ -> error $ show val ++ " is not a proper value for ldslota"
 evalLd (Ldarga n) = do
         stackLevel <- uses stack S.length
-        push $ Ptr (Arg, [stackLevel, n])
+        undefined -- FIXME: push $ Ptr (Arg, [stackLevel, n])
 
 evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
 
@@ -75,12 +77,12 @@ evalSt (Stloc addr) = do
 evalSt (Stlocat n) = do
     Just val <- preuse (topFun . loc . ix n)
     addr <- pop
-    ixPtr addr .= val
+    undefined -- FIXME: ixPtr addr .= val
 evalSt (Starg addr) = do
     val <- pop
     topFun . args . ix addr .= val
 evalSt (Stargate n) = do
     Just val <- preuse (topFun . args . ix n)
     addr <- pop
-    ixPtr addr .= val
+    undefined -- FIXME: ixPtr addr .= val
 
