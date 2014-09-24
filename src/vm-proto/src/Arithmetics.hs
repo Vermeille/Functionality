@@ -8,7 +8,7 @@ import Control.Applicative
 import Control.Monad.State
 
 -- | Evaluate an arithmetical operation
-evalOp :: Arith -> State Memory ()
+evalOp :: Arith -> State VM ()
 evalOp Add = add' <$> pop <*> pop >>= push
     where
         add' (I8 a) (I8 b) = I8 (a + b)

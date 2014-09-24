@@ -20,14 +20,14 @@ valToInt _ = error "not an int"
 -- | Utility function to make evalBranch cleaner
 branchIf :: (Int -> Int -> Bool) -- ^ A comparison function
             -> Int               -- ^ Destination address
-            -> State Memory ()   -- ^ The VM
+            -> State VM ()   -- ^ The VM
 branchIf cmp dst = do
         val <- pop
         when (valToInt val `cmp` 0) $
             pc._instr .= dst - 1
 
 -- | Pop a value
-popFun :: State Memory ()
+popFun :: State VM ()
 popFun = do
         st <- use stack
         case S.viewr st of
@@ -35,7 +35,7 @@ popFun = do
             previous S.:> _ -> stack .= previous
 
 -- | Evaluate a branching instruction
-evalBranch :: BranchOp -> State Memory ()
+evalBranch :: BranchOp -> State VM ()
 evalBranch (Beq dst) = branchIf (==) dst
 evalBranch (Bneq dst) = branchIf (/=) dst
 evalBranch (Blt dst) = branchIf (<) dst

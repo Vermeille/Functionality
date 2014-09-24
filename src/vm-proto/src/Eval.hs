@@ -10,7 +10,7 @@ import Control.Monad.State
 import Data.Maybe (fromMaybe)
 
 -- | Evaluate an Opcode
-eval :: Opcode -> State Memory ()
+eval :: Opcode -> State VM ()
 eval (Ar a) = evalOp a
 eval (Ld ld) = evalLd ld
 eval (Push p) = evalPush p
@@ -18,7 +18,7 @@ eval (Branch b) = evalBranch b
 eval (St s) = evalSt s
 
 -- | The main function: executes the code until pc is set to -1
-runVM :: State Memory ()
+runVM :: State VM ()
 runVM = do
         idx <- use pc
         unless (fst idx == -1) $ do

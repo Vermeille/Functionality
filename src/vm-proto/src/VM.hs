@@ -19,7 +19,7 @@ data FunEnv = FunEnv { _loc :: [Value]        -- ^ local variables
             deriving (Show)
 
 -- | Will certainly be renamed as VM, root datastructure of the VM
-data Memory = Memory { _stack :: S.Seq FunEnv       -- ^ stack of stack frames
+data VM = VM { _stack :: S.Seq FunEnv       -- ^ stack of stack frames
                      , _pc :: (Int, Int)            -- ^ program counter as
                                                     --   (functionId, instrNbr)
                      , _funs :: V.Vector Function   -- ^ Functions of the prgm
@@ -34,7 +34,7 @@ data Function = Function { _name :: String          -- ^ It has a name
                          }
 
 makeLenses ''FunEnv
-makeLenses ''Memory
+makeLenses ''VM
 makeLenses ''Function
 
 -- | Utility function to create a stack frame / FunEnv from arguments and
@@ -59,8 +59,8 @@ emptyStackFrame param = FunEnv { _loc = []
                              , _retAddr = (-1, -1) }
 
 -- | Utility function to create a VM from a set of functions and a set of types
-newVM :: [Function] -> [TyUnion] -> Memory
-newVM funs' types' = Memory { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
+newVM :: [Function] -> [TyUnion] -> VM
+newVM funs' types' = VM { _stack = S.fromList (replicate 2 $ emptyStackFrame [])
                      , _pc = (0, 0)
                      , _funs = V.fromList funs'
                      , _types = V.fromList types'}
@@ -78,19 +78,19 @@ newFun name' args' retVal' locs' impl' = Function { _name = name'
                                                  , _locVar = locs'
                                                  , _impl = V.fromList impl' }
 -- Some lenses to make the code cleaner
-topFun :: Traversal' Memory FunEnv
+topFun :: Traversal' VM FunEnv
 topFun = stack . _last
 
 topTemp :: Traversal' FunEnv Value
 topTemp = temps . _head
 
-tos :: Traversal' Memory Value
+tos :: Traversal' VM Value
 tos = topFun . topTemp
 
-nthFun :: Int -> Traversal' Memory Function
+nthFun :: Int -> Traversal' VM Function
 nthFun n = funs . ix n
 
-code :: (Int, Int) -> Traversal' Memory Opcode
+code :: (Int, Int) -> Traversal' VM Opcode
 code (fun, instr) = nthFun fun . impl . ix instr
 
 _fun :: Lens' (Int, Int) Int
@@ -102,7 +102,7 @@ ixUnion :: [Int] -> Traversal' Value Value
 ixUnion [] = id
 ixUnion (ptr:ptrs) = unionValues . ix ptr . ixUnion ptrs
 
-ixPtr :: Value -> Traversal' Memory Value
+ixPtr :: Value -> Traversal' VM Value
 ixPtr (Ptr (Local, frameIx:locIx:unionIx)) =
     stack . ix frameIx . loc . ix locIx . ixUnion unionIx
 ixPtr (Ptr (Arg, frameIx:argIx:unionIx)) =
@@ -124,7 +124,7 @@ type2defval TyPtr = Ptr (Heap, [])
 type2defval (UnionId uid) = Union uid [] -- membs
 
 -- FIXME: Please, make me readable! looks like perl!
-instance Show Memory where
+instance Show VM where
         show m = "========== Functionality ========\n" ++
             "Stack\n-----\n" ++
             (intercalate "\n  " . map show . F.toList $ _stack m) ++

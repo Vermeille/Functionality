@@ -7,7 +7,7 @@ import Opcodes
 import Control.Lens
 import Control.Monad.State
 
-vm :: Memory
+vm :: VM
 vm = newVM [funMain] [struct]
     where
         funMain = newFun "Main" [] TyI16 [] $

@@ -8,21 +8,21 @@ import qualified Data.Sequence as S
 import Data.Maybe (fromJust, fromMaybe)
 
 -- | Push a value on the stack
-push :: Value -> State Memory ()
+push :: Value -> State VM ()
 push v = state $ \mem -> ((), mem & topFun . temps  %~ (v:))
 
 -- | Pop a value from the stack
-pop :: State Memory Value
+pop :: State VM Value
 pop = state $ \mem -> (topVal mem, mem & topFun . temps %~ tail)
     where
         topVal mem = fromMaybe (error "poping an empty stack") $ mem ^? topFun . topTemp
 
 -- | evaluate push instruction
-evalPush :: PushOp -> State Memory ()
+evalPush :: PushOp -> State VM ()
 evalPush (Pushimm v) = push v
 
 -- | evaluate load instructions
-evalLd :: LdOp -> State Memory ()
+evalLd :: LdOp -> State VM ()
 evalLd (Ldloc n) = preuse (topFun . loc . ix n) >>= push . fromJust
 evalLd (Ldloca n) = do
             stackLevel <- uses stack S.length
@@ -34,14 +34,14 @@ evalLd (Lda n) = do
             push $ fromJust val
 evalLd (Construct uid cid) = do
             udef <- getUnionDef
-            let Just uMembs = (udef ^? ctors . ix cid . ctorMembers)
+            let Just uMembs = udef ^? ctors . ix cid . ctorMembers
             let nbMembs = length uMembs
             args' <- uses (topFun . temps) (take nbMembs)
             topFun . temps %= drop nbMembs
             _ <- return $ zipWith typeCheck args' uMembs
             evalPush $ Pushimm (Union cid args')
             where
-                getUnionDef :: State Memory TyUnion
+                getUnionDef :: State VM TyUnion
                 getUnionDef = preuse (types . ix uid) >>=
                                 return . fromMaybe (error ("union #" ++ show uid ++ "doesnt exist"))
 evalLd (Ldslot n) = do
@@ -66,7 +66,7 @@ evalLd (Ldarga n) = do
 
 evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
 
-evalSt :: StOp -> State Memory ()
+evalSt :: StOp -> State VM ()
 evalSt (Stloc addr) = do
     val <- pop
     topFun . loc . ix addr .= val
