@@ -32,7 +32,9 @@ popFun = do
         st <- use stack
         case S.viewr st of
             S.EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
-            previous S.:> _ -> stack .= previous
+            previous S.:> cur -> do
+                stackfree ((length . _temps $ cur) + (length . _args $ cur))
+                stack .= previous
 
 -- | Evaluate a branching instruction
 evalBranch :: BranchOp -> State VM ()
@@ -44,25 +46,27 @@ evalBranch (Bgt dst) = branchIf (>) dst
 evalBranch (Bgtq dst) = branchIf (>=) dst
 evalBranch (Jmp dst) = pc._instr .= dst - 1
 evalBranch Ret = do
-        Just ret <- preuse tos
+        ret <- tos
         Just (funPc, instrPc) <- preuse (topFun . retAddr)
         popFun
         push ret
         pc .= (funPc, instrPc - 1)
 evalBranch (Call funId) = do
         Just tyArgs <- preuse (nthFun funId . params)
-        Just args' <- preuses (topFun . temps) (take $ length tyArgs)
+        Just args' <- preuses (topFun . temps) (take (length tyArgs))
+        args'' <- mapM readMem args'
         topFun . temps %= drop (length tyArgs)
-        _ <- return $ zipWith typeCheck args' tyArgs
+        _ <- return $ zipWith typeCheck args'' tyArgs
         Just funDef <- preuse (nthFun funId)
         Just (curFun, curInstr) <- preuse pc
-        stack %= (S.|> newStackFrame funDef args' (curFun, curInstr + 1))
+        newFrame <- newStackFrame funDef args'' (curFun, curInstr + 1)
+        stack %= (S.|> newFrame)
         pc .= (funId, -1)
 evalBranch (BreakPoint) = do
         vm <- get
         return $! (unsafePerformIO $ putStrLn (show vm))
 evalBranch (Match cid dst) = do
-        Just val <- preuse tos
+        val <- tos
         case val of
             Union cid' _ ->
                 if cid == cid' then

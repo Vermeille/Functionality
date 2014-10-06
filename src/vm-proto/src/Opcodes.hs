@@ -116,6 +116,7 @@ instance Show Ctor where
 
 -- | returns the first parameters if the type matches with the second
 --   parameter. Throw an exception otherwise.
+
 typeCheck :: Value -> VarType -> Value
 typeCheck a@(I8 _) TyI8 = a
 typeCheck a@(I16 _) TyI16 = a

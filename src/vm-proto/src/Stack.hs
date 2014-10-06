@@ -4,30 +4,29 @@ import VM
 import Opcodes
 import Control.Lens
 import Control.Monad.State
+import qualified Data.IntMap as I
 import qualified Data.Sequence as S
 import Data.Maybe (fromJust, fromMaybe)
 
--- | Push a value on the stack
-push :: Value -> State VM ()
-push v = state $ \mem -> ((), mem & topFun . temps  %~ (v:))
-
--- | Pop a value from the stack
-pop :: State VM Value
-pop = state $ \mem -> (topVal mem, mem & topFun . temps %~ tail)
-    where
-        topVal mem = fromMaybe (error "poping an empty stack") $ mem ^? topFun . topTemp
-
 -- | evaluate push instruction
 evalPush :: PushOp -> State VM ()
-evalPush (Pushimm v) = push v
+evalPush (Pushimm v) = push v >>= \_ -> return ()
 
 -- | evaluate load instructions
 evalLd :: LdOp -> State VM ()
-evalLd (Ldloc n) = preuse (topFun . loc . ix n) >>= push . fromJust
+evalLd (Ldloc n) = do
+        Just addr <- preuse (topFun . loc . ix n)
+        val <- readMem addr
+        push val
+        return ()
 evalLd (Ldloca n) = do
             stackLevel <- uses stack S.length
             undefined -- FIXME: push (Ptr (Local, [stackLevel, n]))
-evalLd (Ldarg n) = preuse (topFun . args . ix n) >>= push . fromJust
+evalLd (Ldarg n) = do
+        Just addr <- preuse (topFun . args . ix n)
+        val <- readMem addr
+        push val
+        return ()
 {- FIXME
 evalLd (Lda n) = do
             Ptr (ty, s':n:n') <- pop
@@ -39,20 +38,21 @@ evalLd (Construct uid cid) = do
             let Just uMembs = udef ^? ctors . ix cid . ctorMembers
             let nbMembs = length uMembs
             args' <- uses (topFun . temps) (take nbMembs)
+            args'' <- mapM readMem args'
             topFun . temps %= drop nbMembs
-            _ <- return $ zipWith typeCheck args' uMembs
-            evalPush $ Pushimm (Union cid args')
+            _ <- return $ zipWith typeCheck args'' uMembs
+            evalPush $ Pushimm (Union cid args'')
             where
                 getUnionDef :: State VM TyUnion
                 getUnionDef = preuse (types . ix uid) >>=
                                 return . fromMaybe (error ("union #" ++ show uid ++ "doesnt exist"))
 evalLd (Ldslot n) = do
-        Just val <- preuse tos
+        val <- tos
         case val of
             Union _ vals -> evalPush $ Pushimm (vals !! n)
             _ -> error "not an Union on top of stack"
 evalLd (Ldslota n) = do
-            Just val <- preuse tos
+            val <- tos
             case val of
                 Union _ _ -> do
                     stackLevel <- uses stack S.length
@@ -68,19 +68,21 @@ evalLd (Ldarga n) = do
         stackLevel <- uses stack S.length
         undefined -- FIXME: push $ Ptr (Arg, [stackLevel, n])
 
-evalLd Dup = preuse tos >>= push . fromMaybe (error "nothing on tos")
+evalLd Dup = tos >>= push >>= \_ -> return ()
 
 evalSt :: StOp -> State VM ()
 evalSt (Stloc addr) = do
     val <- pop
-    topFun . loc . ix addr .= val
+    Just locAddr <- preuse (topFun . loc . ix addr)
+    storeMem locAddr val
 evalSt (Stlocat n) = do
     Just val <- preuse (topFun . loc . ix n)
     addr <- pop
     undefined -- FIXME: ixPtr addr .= val
 evalSt (Starg addr) = do
     val <- pop
-    topFun . args . ix addr .= val
+    Just argAddr <- preuse $ topFun . args . ix addr
+    storeMem argAddr val
 evalSt (Stargate n) = do
     Just val <- preuse (topFun . args . ix n)
     addr <- pop

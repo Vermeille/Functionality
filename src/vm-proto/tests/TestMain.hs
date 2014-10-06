@@ -14,13 +14,12 @@ import Control.Monad.State
 import Test.QuickCheck hiding ((.&.))
 
 testOp op opcode a b =
-        let res = runState runVM vm in
-        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+        let (_, res) = runState runVM vm
+            val = rdMem (tos' res) res in
+        whenFail (putStrLn ("my out: " ++ show val
             ++ " in: " ++ show a ++ " " ++ show b
             ++ " expected: " ++ show (a `op` b))) $
-        case res ^? _2 . tos of
-            Just val -> valToInt val == fromIntegral (a `op` b)
-            Nothing ->  False
+            valToInt val == fromIntegral (a `op` b)
         where
             vm = newVM [code] []
             code = newFun "Main" [] TyI8 []
@@ -40,12 +39,11 @@ prop_or = testOp (.|.) Or
 prop_and = testOp (.&.) And
 
 testBr op opcode a b =
-        let res = runState runVM vm in
-        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+        let (_, res) = runState runVM vm
+            val = rdMem (tos' res) res in
+        whenFail (putStrLn ("my out: " ++ show val
             ++ " in: " ++ show a ++ " " ++ show b)) $
-        case res ^? _2 . tos of
-            Just val -> valToInt val == (if a `op` b then 1 else 0)
-            Nothing ->  False
+            valToInt val == (if a `op` b then 1 else 0)
         where
             vm = newVM [code] []
             code = newFun "Main" [] TyI8 []
@@ -66,13 +64,12 @@ prop_bltq a b = a - b < 5 ==> testBr (<=) Bltq a b
 prop_bgtq a b = a - b < 5 ==> testBr (>=) Bgtq a b
 
 prop_call a b =
-        let res = runState runVM vm in
-        whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+        let (_, res) = runState runVM vm
+            val = rdMem (tos' res) res in
+        whenFail (putStrLn ("my out: " ++ show val
             ++ " in: " ++ show a ++ " " ++ show b
             ++ " expected: " ++ show (a + b))) $
-        case res ^? _2 . tos of
-            Just val -> valToInt val == fromIntegral (a + b)
-            Nothing ->  False
+            valToInt val == fromIntegral (a + b)
         where
             vm = newVM [vmMain, vmAdd] []
             vmMain = newFun "Main" [] TyI8 []
@@ -91,13 +88,13 @@ prop_match = do
         b <- choose (0, 2)
         return $! verify a b
         where
-            verify a b = let res = runState runVM vm in
-                whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+            verify a b =
+                let (_, res) = runState runVM vm
+                    val = rdMem (tos' res) res in
+                whenFail (putStrLn ("my out: " ++ show val
                     ++ " in: " ++ show a ++ " " ++ show b
                     ++ " expected: " ++ show expected )) $
-                case res ^? _2 . tos of
-                    Just (I8 val) -> val == expected
-                    Nothing ->  False
+                    valToInt val == expected
                 where
                     vm = newVM [vmMain] [vmSStruct]
 
@@ -119,13 +116,13 @@ prop_ldslot = do
         a <- choose (0, 2)
         return $! verify a
         where
-            verify a = let res = runState runVM vm in
-                whenFail (putStrLn ("my out: " ++ show (res ^? _2.tos)
+            verify a =
+                let (_, res) = runState runVM vm
+                    val = rdMem (tos' res) res in
+                whenFail (putStrLn ("my out: " ++ show val
                     ++ " in: " ++ show a
                     ++ " expected: " ++ show a )) $
-                case res ^? _2 . tos of
-                    Just (I8 val) -> val == fromIntegral a
-                    Nothing ->  False
+                    valToInt val == fromIntegral a
                 where
                     vm = newVM [vmMain] [vmSStruct]
 
@@ -140,4 +137,7 @@ prop_ldslot = do
                     vmSStruct = TyUnion "SStruct" [ Ctor "SCtor1"
                                                     [TyI8, TyI8, TyI8] ]
 
-main = $quickCheckAll
+return []
+runTests = $quickCheckAll
+
+main = runTests
