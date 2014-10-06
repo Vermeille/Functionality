@@ -12,10 +12,16 @@ import qualified Data.IntMap as I
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 
+-- | You don't want to confuse a number with an address
+newtype Addr = Addr { unpackAddr :: Int} deriving (Show)
+
+toAddr :: Int -> Addr
+toAddr = Addr
+
 -- | Isomorphic to a stack frame, defines a function execution context
-data FunEnv = FunEnv { _loc     :: [Int]  -- ^ local variables
-                     , _args    :: [Int]  -- ^ arguments
-                     , _temps   :: [Int]  -- ^ stack of temp values
+data FunEnv = FunEnv { _loc     :: [Addr]  -- ^ local variables
+                     , _args    :: [Addr]  -- ^ arguments
+                     , _temps   :: [Addr]  -- ^ stack of temp values
                      , _retAddr :: (Int, Int) -- ^ return address of the caller
                      }
             deriving (Show)
@@ -67,22 +73,22 @@ newFun name' args' retVal' locs' impl' = Function { _name = name'
                                                  , _locVar = locs'
                                                  , _impl = V.fromList impl' }
 
-stackalloc :: State VM Int
+stackalloc :: State VM Addr
 stackalloc = do
         prevEsp <- use esp
         esp %= (+ 1)
-        return prevEsp
+        return . toAddr $ prevEsp
 
 stackfree :: Int -> State VM ()
 stackfree n = esp %= (subtract n)
 
 -- | Push a value on the stack
-push :: Value -> State VM Int
+push :: Value -> State VM Addr
 push (Union _ _) = undefined
 push v = do
         addr <- stackalloc
         topFun . temps  %= (addr :)
-        mmu %= I.insert addr v
+        storeMem addr v
         return addr
 
 -- | Pop a value from the stack
@@ -90,7 +96,7 @@ pop :: State VM Value
 pop = do
         tosIdx <- gets tos'
         val <- readMem tosIdx
-        mmu %= I.delete tosIdx
+        mmu %= I.delete (unpackAddr tosIdx)
         topFun . temps %= tail
         _ <- stackfree 1
         return val
@@ -113,34 +119,33 @@ newStackFrame fun' args' retPtr = do
 
 -- | Utility function to create an empty stack frame which will terminate the
 --   VM when returned to (Used to create Main's stack frame)
-emptyStackFrame :: [Int]        -- ^ Arguments (ie command line flags)
+emptyStackFrame :: [Addr]       -- ^ Arguments (ie command line flags)
                    -> FunEnv    -- ^ the stack frame
 emptyStackFrame param = FunEnv { _loc = []
                              , _args = param
                              , _temps = []
                              , _retAddr = (-1, -1) }
 
-rdMem :: Int -> VM -> Value
-rdMem addr vm = _mmu vm I.! addr
+rdMem :: Addr -> VM -> Value
+rdMem addr vm = _mmu vm I.! unpackAddr addr
 
-stMem :: Int -> Value -> VM -> VM
-stMem addr v vm = vm { _mmu = I.insert addr v (_mmu vm) }
+stMem :: Addr -> Value -> VM -> VM
+stMem addr v vm = vm { _mmu = I.insert (unpackAddr addr) v (_mmu vm) }
 
-readMem :: Int -> State VM Value
+readMem :: Addr -> State VM Value
 readMem addr = gets (rdMem addr)
 
-storeMem :: Int -> Value -> State VM ()
+storeMem :: Addr -> Value -> State VM ()
 storeMem addr val = gets (stMem addr val) >>= put
 
 -- Some lenses to make the code cleaner
 topFun :: Traversal' VM FunEnv
 topFun = stack . _last
 
-topTemp :: Traversal' FunEnv Int
+topTemp :: Traversal' FunEnv Addr
 topTemp = temps . _head
 
--- FIXME: Just
-tos' :: VM -> Int
+tos' :: VM -> Addr
 tos' vm = let Just addr = vm ^? (topFun . topTemp) in addr
 
 tos :: State VM Value
