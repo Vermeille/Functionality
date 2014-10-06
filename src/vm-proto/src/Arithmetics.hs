@@ -1,7 +1,6 @@
 module Arithmetics where
 
 import VM
-import Stack
 import Opcodes
 import Data.Bits
 import Control.Applicative

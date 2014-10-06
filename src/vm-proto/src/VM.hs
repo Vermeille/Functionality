@@ -11,7 +11,6 @@ import qualified Data.Vector as V
 import qualified Data.IntMap as I
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
-import Data.Maybe (fromJust, fromMaybe)
 
 -- | Isomorphic to a stack frame, defines a function execution context
 data FunEnv = FunEnv { _loc     :: [Int]  -- ^ local variables
@@ -83,7 +82,6 @@ push (Union _ _) = undefined
 push v = do
         addr <- stackalloc
         topFun . temps  %= (addr :)
-        let val = rdMem
         mmu %= I.insert addr v
         return addr
 
@@ -105,8 +103,10 @@ newStackFrame :: Function               -- ^ the fun to call
                  -> State VM FunEnv     -- ^ the stack frame
 newStackFrame fun' args' retPtr = do
         pars <- mapM push args'
+        let loc' = map type2defval $ _locVar fun'
+        ploc <- mapM push loc'
         return FunEnv
-                  { _loc = [] -- FIXME map type2defval $ _locVar fun'
+                  { _loc = ploc
                   , _args = pars
                   , _temps = []
                   , _retAddr = retPtr }
@@ -124,7 +124,7 @@ rdMem :: Int -> VM -> Value
 rdMem addr vm = _mmu vm I.! addr
 
 stMem :: Int -> Value -> VM -> VM
-stMem addr v vm = VM { _mmu = I.insert addr v (_mmu vm) }
+stMem addr v vm = vm { _mmu = I.insert addr v (_mmu vm) }
 
 readMem :: Int -> State VM Value
 readMem addr = gets (rdMem addr)
@@ -142,11 +142,6 @@ topTemp = temps . _head
 -- FIXME: Just
 tos' :: VM -> Int
 tos' vm = let Just addr = vm ^? (topFun . topTemp) in addr
-
-dbgValToInt :: Value -> Int
-dbgValToInt (I8 n) = fromIntegral n
-dbgValToInt (I16 n) = fromIntegral n
-dbgValToInt (I32 n) = fromIntegral n
 
 tos :: State VM Value
 tos = gets tos' >>= readMem

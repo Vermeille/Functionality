@@ -1,7 +1,6 @@
 module Branching where
 
 import VM
-import Stack
 import Opcodes
 import Control.Monad
 import System.IO.Unsafe
@@ -49,7 +48,7 @@ evalBranch Ret = do
         ret <- tos
         Just (funPc, instrPc) <- preuse (topFun . retAddr)
         popFun
-        push ret
+        _ <- push ret
         pc .= (funPc, instrPc - 1)
 evalBranch (Call funId) = do
         Just tyArgs <- preuse (nthFun funId . params)

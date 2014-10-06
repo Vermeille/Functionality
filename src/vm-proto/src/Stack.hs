@@ -4,9 +4,8 @@ import VM
 import Opcodes
 import Control.Lens
 import Control.Monad.State
-import qualified Data.IntMap as I
 import qualified Data.Sequence as S
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 
 -- | evaluate push instruction
 evalPush :: PushOp -> State VM ()
@@ -17,7 +16,7 @@ evalLd :: LdOp -> State VM ()
 evalLd (Ldloc n) = do
         Just addr <- preuse (topFun . loc . ix n)
         val <- readMem addr
-        push val
+        _ <- push val
         return ()
 evalLd (Ldloca n) = do
             stackLevel <- uses stack S.length
@@ -25,7 +24,7 @@ evalLd (Ldloca n) = do
 evalLd (Ldarg n) = do
         Just addr <- preuse (topFun . args . ix n)
         val <- readMem addr
-        push val
+        _ <- push val
         return ()
 {- FIXME
 evalLd (Lda n) = do
@@ -51,6 +50,7 @@ evalLd (Ldslot n) = do
         case val of
             Union _ vals -> evalPush $ Pushimm (vals !! n)
             _ -> error "not an Union on top of stack"
+{- FIXME
 evalLd (Ldslota n) = do
             val <- tos
             case val of
@@ -58,12 +58,11 @@ evalLd (Ldslota n) = do
                     stackLevel <- uses stack S.length
                     Just tempLevel <- preuses (topFun . temps) length
                     undefined -- FIXME: push $ Ptr (Temp, [stackLevel, tempLevel, n])
-                {- FIXME
                 Ptr (ty, ptrs) -> do
                     _ <- pop
                     undefined -- FIXME: push $ Ptr (ty, ptrs ++ [n])
-                -}
                 _ -> error $ show val ++ " is not a proper value for ldslota"
+-}
 evalLd (Ldarga n) = do
         stackLevel <- uses stack S.length
         undefined -- FIXME: push $ Ptr (Arg, [stackLevel, n])
