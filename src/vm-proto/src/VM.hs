@@ -136,7 +136,7 @@ readMem :: Addr -> State VM Value
 readMem addr = gets (rdMem addr)
 
 storeMem :: Addr -> Value -> State VM ()
-storeMem addr val = gets (stMem addr val) >>= put
+storeMem addr val = modify (stMem addr val)
 
 -- Some lenses to make the code cleaner
 topFun :: Traversal' VM FunEnv
