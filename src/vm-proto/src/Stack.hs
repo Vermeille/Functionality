@@ -4,8 +4,9 @@ import VM
 import Opcodes
 import Control.Lens
 import Control.Monad.State
+import Branching (valToInt)
 import qualified Data.Sequence as S
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, fromJust)
 
 -- | evaluate push instruction
 evalPush :: PushOp -> State VM ()
@@ -14,24 +15,22 @@ evalPush (Pushimm v) = push v >>= \_ -> return ()
 -- | evaluate load instructions
 evalLd :: LdOp -> State VM ()
 evalLd (Ldloc n) = do
-        Just addr <- preuse (topFun . loc . ix n)
-        val <- readMem addr
+        val <- gets $ rdLocation (fromJust . (^? topFun . loc . ix n))
         _ <- push val
         return ()
 evalLd (Ldloca n) = do
-            stackLevel <- uses stack S.length
-            undefined -- FIXME: push (Ptr (Local, [stackLevel, n]))
+        addr <- preuse (topFun . loc . ix n)
+        _ <- push . I32 . fromIntegral . unpackAddr . fromJust $ addr
+        return ()
 evalLd (Ldarg n) = do
-        Just addr <- preuse (topFun . args . ix n)
-        val <- readMem addr
+        val <- gets $ rdLocation (fromJust . (^? topFun . args . ix n))
         _ <- push val
         return ()
-{- FIXME
 evalLd (Lda n) = do
-            Ptr (ty, s':n:n') <- pop
-            val <- preuse (stack . ix s' . to (takeVar ty) . ix n . ixUnion n')
-            push $ fromJust val
--}
+        addr <- pop
+        val <- readMem (toAddr . valToInt $ addr)
+        push val
+        return ()
 evalLd (Construct uid cid) = do
             udef <- getUnionDef
             let Just uMembs = udef ^? ctors . ix cid . ctorMembers

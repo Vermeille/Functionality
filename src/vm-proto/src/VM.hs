@@ -129,8 +129,14 @@ emptyStackFrame param = FunEnv { _loc = []
 rdMem :: Addr -> VM -> Value
 rdMem addr vm = _mmu vm I.! unpackAddr addr
 
+rdLocation :: (VM -> Addr) -> VM -> Value
+rdLocation addr vm = rdMem (addr vm) vm
+
 stMem :: Addr -> Value -> VM -> VM
 stMem addr v vm = vm { _mmu = I.insert (unpackAddr addr) v (_mmu vm) }
+
+stLocation :: (VM -> Addr) -> Value -> VM -> VM
+stLocation addr v vm = stMem (addr vm) v vm
 
 readMem :: Addr -> State VM Value
 readMem addr = gets (rdMem addr)

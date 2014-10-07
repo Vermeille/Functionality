@@ -7,6 +7,7 @@ import System.IO.Unsafe
 import Control.Lens hiding ((|>))
 import Control.Monad.State
 import qualified Data.Sequence as S
+import Data.Maybe (fromJust)
 
 -- | extract an int out of an i{8,16,32} value. Useful when casting or wanting
 -- to disregard int type
@@ -52,8 +53,8 @@ evalBranch Ret = do
         pc .= (funPc, instrPc - 1)
 evalBranch (Call funId) = do
         Just tyArgs <- preuse (nthFun funId . params)
-        Just args' <- preuses (topFun . temps) (take (length tyArgs))
-        args'' <- mapM readMem args'
+        args'' <- preuses (topFun . temps) (take (length tyArgs)) >>=
+            mapM readMem . fromJust
         topFun . temps %= drop (length tyArgs)
         _ <- return $ zipWith typeCheck args'' tyArgs
         Just funDef <- preuse (nthFun funId)
@@ -73,3 +74,4 @@ evalBranch (Match cid dst) = do
                 else
                     return $! ()
             _ -> error "not an Union on top of stack"
+
