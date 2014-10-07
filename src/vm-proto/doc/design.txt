@@ -1,0 +1,49 @@
+General VM design
+=================
+
+The VM has a semantic design. It tries to be as abstract and semantic as I
+could conceive it. The whole VM is the VM datastructure found in VM.hs.
+It's mainly splitted in two parts:
+
+The semantic side
+-----------------
+
+Everything on the semantic side is not really data, but more metadata:
+* _types: type information (but not values), it describe mainly unions (see
+  below) and custom types. It contains semantic types, that have not metal
+  reality.
+* _pc: an abstract program counter as a couple (functionID, instructionID)
+* _funs: contains information about functions: its name, and types of its
+  parameters, local variables, return value etc (datastructure Function in
+  VM.hs). Still no runtime data.
+* _stack: is the layout of the semantic stack during runtime. It still contains
+  no values and data, but is a description layout of the real Stack. They
+  should be seen a complementary: the semantic stack describes the data Stack,
+  but you cannot understand what happens in the data stack without the semantic
+  stack.
+
+The data side
+-------------
+
+The data side lies entirely in _mmu. This represents a raw memory blob, that
+is, an array of bytes. For some reasons, and because Haskell allows it
+trivially, we still remember about the type of those atomic values (basically,
+is it an Int8, an Int16 or an Int32?) because we don't want it possible in our
+prototype to mess with our atomic types.
+
+* _mmu is just an hashMap which binds an address to a Value. The stack in the
+  _mmu is also called "data stack" in this document.
+* _esp is just a counter used internally by the stack allocator but have no
+  conceptual reason to exists. It just indicates in _mmu where is the top of
+  the semantic stack.
+
+Linking both sides
+------------------
+
+As was said before, the semantic stack contains no value. It only contains
+addresses instead. This addresses are given by the stack allocator and binds to
+the corresponding value in the data stack.
+
+Such a design was needed to allow pointers, and to flatten Union which can nest
+ad infinitum.
+
