@@ -3,6 +3,8 @@
 
 module VM where
 
+import Data.List.Lens
+import Control.Lens.Fold
 import Opcodes
 import Control.Lens
 import Control.Monad.State
@@ -86,20 +88,32 @@ stackfree n = esp %= (subtract n)
 push :: Value -> State VM Addr
 push (Union _ _) = undefined
 push v = do
-        addr <- stackalloc
-        topFun . temps  %= (addr :)
-        storeMem addr v
+        vm <- get
+        let (addr, vm') = push' v vm
+        put vm'
         return addr
 
+push' :: Value -> VM -> (Addr, VM)
+push' v vm = (,) (toAddr $ addr)
+                 vm { _esp = _esp vm + 1
+                    , _stack = pushedStack
+                    , _mmu = I.insert addr v (_mmu vm)
+                    }
+    where
+        pushedStack = _stack vm & _last . temps %~ (toAddr addr :)
+        addr = _esp vm
+
 -- | Pop a value from the stack
-pop :: State VM Value
-pop = do
-        tosIdx <- gets tos'
-        val <- readMem tosIdx
-        mmu %= I.delete (unpackAddr tosIdx)
-        topFun . temps %= tail
-        _ <- stackfree 1
-        return val
+pop :: VM -> (Value, VM)
+pop vm = (,) val
+              vm { _stack = poppedStack
+                 , _esp = _esp vm - 1
+                 , _mmu = I.delete valAddr $ _mmu vm
+                 }
+    where
+        valAddr = unpackAddr $ tos' vm
+        val = _mmu vm I.! valAddr
+        poppedStack = _stack vm & _last . temps %~ tail
 
 -- | Utility function to create a stack frame / FunEnv from arguments and
 --   return address

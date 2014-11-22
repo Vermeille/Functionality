@@ -2,11 +2,11 @@ module Branching where
 
 import VM
 import Opcodes
-import Control.Monad
 import System.IO.Unsafe
 import Control.Lens hiding ((|>))
 import Control.Monad.State
 import qualified Data.Sequence as S
+import qualified Data.IntMap as I
 import Data.Maybe (fromJust)
 
 -- | extract an int out of an i{8,16,32} value. Useful when casting or wanting
@@ -21,20 +21,35 @@ valToInt _ = error "not an int"
 branchIf :: (Int -> Int -> Bool) -- ^ A comparison function
             -> Int               -- ^ Destination address
             -> State VM ()   -- ^ The VM
-branchIf cmp dst = do
-        val <- pop
-        when (valToInt val `cmp` 0) $
-            pc._instr .= dst - 1
+branchIf cmp dst = modify $ branchIf' cmp dst
 
--- | Pop a value
+branchIf' :: (Int -> Int -> Bool) -> Int -> VM -> VM
+branchIf' cmp dst vm =
+        if valToInt popVal `cmp` 0 then
+            poppedVM { _pc = newPC }
+        else
+            poppedVM
+    where
+        (popVal, poppedVM) = pop vm
+        newPC = let (f, _) = _pc vm in (f, dst - 1)
+
+-- | Pop a stack frame
 popFun :: State VM ()
-popFun = do
-        st <- use stack
-        case S.viewr st of
-            S.EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
-            previous S.:> cur -> do
-                stackfree ((length . _temps $ cur) + (length . _args $ cur))
-                stack .= previous
+popFun = modify popFun'
+
+popFun' :: VM -> VM
+popFun' vm = vm { _stack = prevStackFrames
+                , _mmu = freedMMU
+                , _esp = newEsp }
+    where
+        freedMMU = foldl freeAddr (_mmu vm) allAddr
+        freeAddr mmu addr = I.delete (unpackAddr addr) mmu
+        allAddr = _temps curSF ++ _args curSF ++ _loc curSF
+        newEsp = _esp vm - length (_temps curSF)
+        (prevStackFrames, curSF) =
+            case S.viewr $ _stack vm of
+                S.EmptyR -> error "trying to pop an empty stack. That should NEVER happen"
+                previous S.:> curr -> (previous, curr)
 
 -- | Evaluate a branching instruction
 evalBranch :: BranchOp -> State VM ()
@@ -45,12 +60,7 @@ evalBranch (Bltq dst) = branchIf (<=) dst
 evalBranch (Bgt dst) = branchIf (>) dst
 evalBranch (Bgtq dst) = branchIf (>=) dst
 evalBranch (Jmp dst) = pc._instr .= dst - 1
-evalBranch Ret = do
-        ret <- tos
-        Just (funPc, instrPc) <- preuse (topFun . retAddr)
-        popFun
-        _ <- push ret
-        pc .= (funPc, instrPc - 1)
+evalBranch Ret = modify evalRet'
 evalBranch (Call funId) = do
         Just tyArgs <- preuse (nthFun funId . params)
         args'' <- preuses (topFun . temps) (take (length tyArgs)) >>=
@@ -74,4 +84,11 @@ evalBranch (Match cid dst) = do
                 else
                     return $! ()
             _ -> error "not an Union on top of stack"
+
+evalRet' :: VM -> VM
+evalRet' vm = newVM { _pc = newPC }
+    where
+        newPC = let Just (f, i) = vm ^? topFun . retAddr in (f, i - 1)
+        retVal = rdMem (tos' vm) vm
+        newVM = snd . push' retVal . popFun' $ vm
 
