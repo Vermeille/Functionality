@@ -115,6 +115,9 @@ pop vm = (,) val
         val = _mmu vm I.! valAddr
         poppedStack = _stack vm & _last . temps %~ tail
 
+pop' :: State VM Value
+pop' = state $ \vm -> pop vm
+
 -- | Utility function to create a stack frame / FunEnv from arguments and
 --   return address
 newStackFrame :: Function               -- ^ the fun to call

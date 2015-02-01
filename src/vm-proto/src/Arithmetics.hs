@@ -8,7 +8,7 @@ import Control.Monad.State
 
 -- | Evaluate an arithmetical operation
 evalOp :: Arith -> State VM Addr
-evalOp Add = add' <$> pop <*> pop >>= push
+evalOp Add = add' <$> pop' <*> pop' >>= push
     where
         add' (I8 a) (I8 b) = I8 (a + b)
         add' (I8 a) (I16 b) = I16 (fromIntegral a + b)
@@ -29,8 +29,8 @@ evalOp Add = add' <$> pop <*> pop >>= push
         add' _ _ = error "invalid types for Add"
 
 evalOp Sub = do
-        a <- pop
-        b <- pop
+        a <- pop'
+        b <- pop'
         push (b `sub'` a)
     where
         sub' (I8 a) (I8 b) = I8 (a - b)
@@ -51,7 +51,7 @@ evalOp Sub = do
         sub' (F a) (F b) = F (a - b)
         sub' _ _ = error "invalid types for sub"
 
-evalOp Mul = mul' <$> pop <*> pop >>= push
+evalOp Mul = mul' <$> pop' <*> pop' >>= push
     where
         mul' (I8 a) (I8 b) = I8 (a * b)
         mul' (I8 a) (I16 b) = I16 (fromIntegral a * b)
@@ -72,8 +72,8 @@ evalOp Mul = mul' <$> pop <*> pop >>= push
         mul' _ _ = error "invalid types for mul"
 
 evalOp Div = do
-        a <- pop
-        b <- pop
+        a <- pop'
+        b <- pop'
         push (b `div'` a)
     where
         div' (I8 a) (I8 b) = I8 (a `div` b)
@@ -95,8 +95,8 @@ evalOp Div = do
         div' _ _ = error "invalid types for Div"
 
 evalOp Mod = do
-        a <- pop
-        b <- pop
+        a <- pop'
+        b <- pop'
         push (b `mod'` a)
     where
         mod' (I8 a) (I8 b) = I8 (a `mod` b)
@@ -111,8 +111,8 @@ evalOp Mod = do
         mod' _ _ = error "invalid types for mod"
 
 evalOp Shl = do
-        a <- pop
-        b <- pop
+        a <- pop'
+        b <- pop'
         push (b `shl'` a)
     where
         shl' (I8 a) (I8 b) = I8 (a `shiftL` fromIntegral b)
@@ -127,8 +127,8 @@ evalOp Shl = do
         shl' _ _ = error "invalid types for shl"
 
 evalOp Shr = do
-        a <- pop
-        b <- pop
+        a <- pop'
+        b <- pop'
         push (b `shr'` a)
     where
         shr' (I8 a) (I8 b) = I8 (a `shiftR` fromIntegral b)
@@ -142,7 +142,7 @@ evalOp Shr = do
         shr' (I32 a) (I32 b) = I32 (a `shiftR` fromIntegral b)
         shr' _ _ = error "invalid types for shr"
 
-evalOp Or = or' <$> pop <*> pop >>= push
+evalOp Or = or' <$> pop' <*> pop' >>= push
     where
         or' (I8 a) (I8 b) = I8 (a .|. b)
         or' (I8 a) (I16 b) = I16 (fromIntegral a .|. b)
@@ -155,7 +155,7 @@ evalOp Or = or' <$> pop <*> pop >>= push
         or' (I32 a) (I32 b) = I32 (a .|. b)
         or' _ _ = error "invalid types for or"
 
-evalOp And = and' <$> pop <*> pop >>= push
+evalOp And = and' <$> pop' <*> pop' >>= push
     where
         and' (I8 a) (I8 b) = I8 (a .&. b)
         and' (I8 a) (I16 b) = I16 (fromIntegral a .&. b)
@@ -169,8 +169,8 @@ evalOp And = and' <$> pop <*> pop >>= push
         and' _ _ = error "invalid types fand and"
 
 evalOp Cmp = do
-        a <- pop
-        b <- pop
+        a <- pop'
+        b <- pop'
         push (b `sub'` a)
     where
         sub' (I8 a) (I8 b) = I32 (fromIntegral a - fromIntegral b)

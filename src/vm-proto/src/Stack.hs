@@ -27,10 +27,11 @@ evalLd (Ldarg n) = do
         _ <- push val
         return ()
 evalLd (Lda n) = do
-        addr <- pop
+        addr <- pop'
         val <- readMem (toAddr . valToInt $ addr)
         push val
         return ()
+{- FIXME
 evalLd (Construct uid cid) = do
             udef <- getUnionDef
             let Just uMembs = udef ^? ctors . ix cid . ctorMembers
@@ -49,7 +50,6 @@ evalLd (Ldslot n) = do
         case val of
             Union _ vals -> evalPush $ Pushimm (vals !! n)
             _ -> error "not an Union on top of stack"
-{- FIXME
 evalLd (Ldslota n) = do
             val <- tos
             case val of
@@ -61,28 +61,28 @@ evalLd (Ldslota n) = do
                     _ <- pop
                     undefined -- FIXME: push $ Ptr (ty, ptrs ++ [n])
                 _ -> error $ show val ++ " is not a proper value for ldslota"
--}
 evalLd (Ldarga n) = do
         stackLevel <- uses stack S.length
         undefined -- FIXME: push $ Ptr (Arg, [stackLevel, n])
 
+-}
 evalLd Dup = tos >>= push >>= \_ -> return ()
 
 evalSt :: StOp -> State VM ()
 evalSt (Stloc addr) = do
-    val <- pop
+    val <- pop'
     Just locAddr <- preuse (topFun . loc . ix addr)
     storeMem locAddr val
 evalSt (Stlocat n) = do
     Just val <- preuse (topFun . loc . ix n)
-    addr <- pop
+    addr <- pop'
     undefined -- FIXME: ixPtr addr .= val
 evalSt (Starg addr) = do
-    val <- pop
+    val <- pop'
     Just argAddr <- preuse $ topFun . args . ix addr
     storeMem argAddr val
 evalSt (Stargate n) = do
     Just val <- preuse (topFun . args . ix n)
-    addr <- pop
+    addr <- pop'
     undefined -- FIXME: ixPtr addr .= val
 
